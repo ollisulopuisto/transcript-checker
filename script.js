@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLang = 'fi'; // Default language, will be overwritten by localStorage or initial load
     let audioFileLoaded = false; // Added state tracker
     let vttFileLoaded = false;   // Added state tracker
+    let audioBaseFilename = 'transcript'; // Added: Store base name of audio file
 
     // --- i18n Functions ---
     function getBrowserLanguage() {
@@ -247,6 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
             audioPlayer.src = objectURL;
             // URL.revokeObjectURL(objectURL); // Voi vapauttaa muistia myöhemmin, mutta tarvitaan toistoon
             console.log("Äänitiedosto ladattu:", file.name);
+            // Extract base name from audio file
+            const lastDotIndex = file.name.lastIndexOf('.');
+            audioBaseFilename = lastDotIndex > 0 ? file.name.substring(0, lastDotIndex) : file.name;
+            updateDefaultFilename(); // Update save filename based on new audio file
             audioFileLoaded = true; // Mark as loaded
             checkFilesLoaded(); // Check if both are loaded
         } else {
@@ -264,8 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
             lastAutoSavedContent = ''; // Reset last saved content tracker
 
             originalVttFilename = file.name; // Store the original filename
-            // Set default save filename based on selected format (initially plain text)
-            updateDefaultFilename();
+            // Set default save filename based on selected format and audio filename
+            updateDefaultFilename(); // Call this *after* potentially loading audio
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -752,8 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
             suffix = '_modified';
         }
 
-        const baseName = originalVttFilename.replace(/\.vtt$/i, '');
-        saveFilenameInput.value = `${baseName}${suffix}${extension}`;
+        // Use the stored audio base filename
+        saveFilenameInput.value = `${audioBaseFilename}${suffix}${extension}`;
     }
 
     // Add listener to format options
