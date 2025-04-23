@@ -501,9 +501,9 @@ document.addEventListener('DOMContentLoaded', () => {
         previousSegmentsDiv.innerHTML = '';
         nextSegmentsDiv.innerHTML = '';
         
-        // Add previous segments (up to 2)
-        for (let i = Math.max(0, index - 2); i < index; i++) {
-            const segment = createContextSegment(transcriptData[i], i);
+        // Add previous segment (only 1 instead of 2)
+        if (index > 0) {
+            const segment = createContextSegment(transcriptData[index - 1], index - 1);
             if (segment) previousSegmentsDiv.appendChild(segment);
         }
         
@@ -512,9 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
         editableTranscriptTextarea.value = currentText || '';
         currentEditingIndex = index;
         
-        // Add next segments (up to 2)
-        for (let i = index + 1; i <= Math.min(transcriptData.length - 1, index + 2); i++) {
-            const segment = createContextSegment(transcriptData[i], i);
+        // Add next segment (only 1 instead of 2)
+        if (index < transcriptData.length - 1) {
+            const segment = createContextSegment(transcriptData[index + 1], index + 1);
             if (segment) nextSegmentsDiv.appendChild(segment);
         }
     }
