@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editableColumnContentDiv = document.getElementById('editableColumnContent'); // Added
     const mainContentDiv = document.getElementById('mainContent'); // Added for hiding/showing
     const initialLoadMessageDiv = document.getElementById('initialLoadMessage'); // Added
+    const switchToEditorBtn = document.getElementById('switchToEditorBtn'); // Added
 
     // --- Needed variables for focused segment editing ---
     const previousSegmentsDiv = document.getElementById('previousSegments');
@@ -69,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectLanguageLabel: "Select UI Language:", // Added
             langEn: "English", // Added
             langFi: "Suomi", // Added
+            switchToEditorBtn: "Return to Editor", // Added
         },
         fi: {
             pageTitle: "Litteroinnin tarkistustyökalu",
@@ -112,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectLanguageLabel: "Valitse käyttöliittymän kieli:", // Added
             langEn: "English", // Added
             langFi: "Suomi", // Added
+            switchToEditorBtn: "Palaa editoriin", // Added
         }
     };
 
@@ -190,18 +193,39 @@ document.addEventListener('DOMContentLoaded', () => {
             mainContentDiv.classList.remove('hidden'); // Show main content
             initialLoadMessageDiv.classList.add('hidden'); // Hide initial message
             saveButton.disabled = false; // Enable save button
+            switchToEditorBtn.style.display = 'none'; // Hide switch button when editor is shown
         } else {
              mainContentDiv.classList.add('hidden'); // Ensure main content is hidden if files not loaded
              initialLoadMessageDiv.classList.remove('hidden'); // Show initial message
              saveButton.disabled = true; // Keep save button disabled
+             fileInputContainer.classList.remove('hidden'); // Ensure file inputs are visible
+             toggleFileInputsBtn.style.display = 'none'; // Hide load new button
+
+             // Show "Return to Editor" button ONLY if files were previously loaded
+             const wereFilesLoaded = transcriptData.length > 0 && audioPlayer.src; // Check if data exists
+             if (wereFilesLoaded) {
+                 switchToEditorBtn.style.display = 'block';
+             } else {
+                 switchToEditorBtn.style.display = 'none';
+             }
         }
     }
 
     toggleFileInputsBtn.addEventListener('click', () => {
+        const wereFilesLoaded = audioFileLoaded && vttFileLoaded; // Check before resetting
+
         fileInputContainer.classList.remove('hidden');
         toggleFileInputsBtn.style.display = 'none'; // Hide the button again
         mainContentDiv.classList.add('hidden'); // Hide main content when loading new files
         initialLoadMessageDiv.classList.remove('hidden'); // Show initial message again
+
+        // Show the "Return to Editor" button if files were loaded before clicking this
+        if (wereFilesLoaded) {
+            switchToEditorBtn.style.display = 'block';
+        } else {
+            switchToEditorBtn.style.display = 'none'; // Should be hidden if no files were ever loaded
+        }
+
         // Reset loaded status if user wants to load new files
         audioFileLoaded = false;
         vttFileLoaded = false;
@@ -222,6 +246,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // clearAutoSaves();
         saveStatus.textContent = ''; // Clear any previous save status
         saveFilenameInput.value = 'modified_transcript.txt'; // Reset filename
+        // Do NOT call checkFilesLoaded here, as it would immediately hide the inputs again
+    });
+
+    // --- Listener for the new "Return to Editor" button --- Added
+    switchToEditorBtn.addEventListener('click', () => {
+        // Simply reverse the visibility states set by toggleFileInputsBtn
+        fileInputContainer.classList.add('hidden');
+        switchToEditorBtn.style.display = 'none';
+        toggleFileInputsBtn.style.display = 'block';
+        mainContentDiv.classList.remove('hidden');
+        initialLoadMessageDiv.classList.add('hidden');
+
+        // Re-enable save button as we are returning to a loaded state
+        saveButton.disabled = false;
+
+        // Restore loaded status flags (important for checkFilesLoaded logic if called later)
+        audioFileLoaded = true;
+        vttFileLoaded = true;
     });
 
     // --- Language Selection --- Added
