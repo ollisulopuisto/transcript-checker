@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
             toggleFileInputsBtn: "Load New Files", // Added
             // Language Selector
-            selectLanguageLabel: "Select Language:", // Added
+            selectLanguageLabel: "Select UI Language:", // Added
             langEn: "English", // Added
             langFi: "Suomi", // Added
         },
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
             toggleFileInputsBtn: "Lataa uudet tiedostot", // Added
             // Language Selector
-            selectLanguageLabel: "Valitse kieli:", // Added
+            selectLanguageLabel: "Valitse käyttöliittymän kieli:", // Added
             langEn: "English", // Added
             langFi: "Suomi", // Added
         }
