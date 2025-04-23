@@ -34,6 +34,12 @@
             <h2>Muokattava Tekstitys (korjaa tähän)</h2>
             <textarea id="editableTranscript" class="transcript-box" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
             <p><small>Huom: Muokkaukset tässä eivät tallennu automaattisesti.</small></p>
+            <div class="save-section">
+                <label for="saveFilename">Tallenna nimellä:</label>
+                <input type="text" id="saveFilename" value="modified_transcript.txt">
+                <button id="saveButton">Tallenna muokattu teksti</button>
+                <p id="saveStatus" style="font-size: 0.8em; color: green;"></p>
+            </div>
         </div>
     </div>
 

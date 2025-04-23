@@ -5,8 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalTranscriptDiv = document.getElementById('originalTranscript');
     const editableTranscriptTextarea = document.getElementById('editableTranscript');
     const currentTimeSpan = document.getElementById('currentTime');
+    const saveButton = document.getElementById('saveButton');
+    const saveFilenameInput = document.getElementById('saveFilename');
+    const saveStatus = document.getElementById('saveStatus');
 
     let transcriptData = []; // Taulukko VTT-datan tallentamiseen: { start, end, text, element }
+    let originalVttFilename = 'transcript.vtt'; // Store original VTT filename for default save name
 
     // --- Tiedostojen lataus ---
 
@@ -23,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     vttFileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
+            originalVttFilename = file.name; // Store the original filename
+            // Set default save filename based on original VTT name
+            saveFilenameInput.value = originalVttFilename.replace(/\.vtt$/i, '_modified.txt') || 'modified_transcript.txt';
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -196,5 +204,40 @@ document.addEventListener('DOMContentLoaded', () => {
          originalTranscriptDiv.innerHTML = `<p style="color: red;">Äänivirhe: ${errorMessage}</p>`;
     });
 
+    // --- Muokatun tekstityksen tallennus ---
+
+    saveButton.addEventListener('click', () => {
+        const modifiedText = editableTranscriptTextarea.value;
+        const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt'; // Use input value or default
+
+        if (!modifiedText) {
+            saveStatus.textContent = 'Ei tallennettavaa tekstiä.';
+            saveStatus.style.color = 'red';
+            return;
+        }
+
+        try {
+            const blob = new Blob([modifiedText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link); // Required for Firefox
+            link.click();
+            document.body.removeChild(link); // Clean up
+            URL.revokeObjectURL(url); // Free up memory
+
+            saveStatus.textContent = `Tiedosto "${filename}" tallennettu.`;
+            saveStatus.style.color = 'green';
+            // Clear status after a few seconds
+            setTimeout(() => { saveStatus.textContent = ''; }, 5000);
+
+        } catch (error) {
+            console.error("Tallennusvirhe:", error);
+            saveStatus.textContent = 'Tallennus epäonnistui.';
+            saveStatus.style.color = 'red';
+        }
+    });
 
 }); // DOMContentLoaded loppuu
