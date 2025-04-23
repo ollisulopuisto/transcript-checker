@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formatTxtPlainLabel: "Text without timestamps (.txt)",
             formatTxtTsLabel: "Text with timestamps (.txt)",
             formatVttLabel: "VTT with timestamps (.vtt)",
+            saveHeading: "Save", // Added
             // Dynamic strings
             vttParseError: "Error parsing VTT file. Check format.",
             vttReadError: "Error reading VTT file.",
@@ -92,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formatTxtPlainLabel: "Teksti ilman aikaleimoja (.txt)",
             formatTxtTsLabel: "Teksti aikaleimoilla (.txt)",
             formatVttLabel: "VTT aikaleimoilla (.vtt)",
+            saveHeading: "Tallenna", // Added
             // Dynamic strings
             vttParseError: "Virhe VTT-tiedoston jäsentämisessä. Tarkista muoto.",
             vttReadError: "Virhe VTT-tiedoston lukemisessa.",
