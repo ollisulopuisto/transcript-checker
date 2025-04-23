@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const langBtnEn = document.getElementById('langBtnEn'); // Added
     const langBtnFi = document.getElementById('langBtnFi'); // Added
     const LANGUAGE_STORAGE_KEY = 'transcriptCheckerLang'; // Added
+    const timestampEditorDiv = document.getElementById('timestampEditor'); // Added
+    const editableColumnContentDiv = document.getElementById('editableColumnContent'); // Added
 
     // --- i18n Translations ---
     const translations = {
@@ -54,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // VTT parsing errors
             vttInvalidTimeFormat: "Invalid time format: {timeString}",
             vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
+            vttInvalidEditableTimeFormat: "Invalid time format. Use HH:MM:SS.sss", // Added
             toggleFileInputsBtn: "Load New Files", // Added
             // Language Selector
             selectLanguageLabel: "Select UI Language:", // Added
@@ -96,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // VTT parsing errors
             vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
             vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
+            vttInvalidEditableTimeFormat: "Virheellinen aikamuoto. Käytä HH:MM:SS.sss", // Added
             toggleFileInputsBtn: "Lataa uudet tiedostot", // Added
             // Language Selector
             selectLanguageLabel: "Valitse käyttöliittymän kieli:", // Added
@@ -279,6 +283,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return seconds;
     }
 
+    // NEW: Function to parse HH:MM:SS.sss format from input fields
+    function parseVttTimeToSeconds(timeString) {
+        const timeRegex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})[.,](\d{1,3})$/;
+        const match = timeString.match(timeRegex);
+        if (!match) {
+            return NaN; // Invalid format
+        }
+        // Extract parts, providing 0 for missing hours
+        const hours = match[1] ? parseInt(match[1], 10) : 0;
+        const minutes = parseInt(match[2], 10);
+        const seconds = parseInt(match[3], 10);
+        const milliseconds = parseInt((match[4] || '0').padEnd(3, '0'), 10); // Pad ms
+
+        if (minutes >= 60 || seconds >= 60) {
+            return NaN; // Invalid time components
+        }
+
+        return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+    }
+
     function parseVTT(vttContent) {
         const lines = vttContent.split(/\r?\n/);
         const cues = [];
@@ -331,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayTranscription(cues) {
         originalTranscriptDiv.innerHTML = ''; // Tyhjennä vanha sisältö
+        timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
         let editableText = '';
         let currentPos = 0; // Track character position in editable textarea
 
@@ -359,18 +384,98 @@ document.addEventListener('DOMContentLoaded', () => {
             cue.editableStart = currentPos; // Store start index
             cue.editableEnd = currentPos + cue.text.length; // Store end index (before newlines)
             currentPos += textToAdd.length; // Update position for next cue
+
+            // Create timestamp inputs for the editor column
+            const tsPairDiv = document.createElement('div');
+            tsPairDiv.className = 'timestamp-pair';
+            tsPairDiv.id = `ts-pair-${index}`;
+
+            const startInput = document.createElement('input');
+            startInput.type = 'text';
+            startInput.value = formatVttTime(cue.start);
+            startInput.dataset.cueIndex = index;
+            startInput.dataset.timeType = 'start';
+            startInput.title = `Start time for cue ${index + 1}`; // Tooltip
+            startInput.addEventListener('input', handleTimestampInput); // Add listener
+
+            const endInput = document.createElement('input');
+            endInput.type = 'text';
+            endInput.value = formatVttTime(cue.end);
+            endInput.dataset.cueIndex = index;
+            endInput.dataset.timeType = 'end';
+            endInput.title = `End time for cue ${index + 1}`; // Tooltip
+            endInput.addEventListener('input', handleTimestampInput); // Add listener
+
+            tsPairDiv.appendChild(startInput);
+            tsPairDiv.appendChild(endInput);
+            timestampEditorDiv.appendChild(tsPairDiv);
+
+            // Store references to inputs in transcriptData
+            cue.startTimestampInput = startInput;
+            cue.endTimestampInput = endInput;
         });
 
         editableTranscriptTextarea.value = editableText.trim(); // Poista lopun tyhjä rivi
 
         // Reset scroll positions when loading new content
         originalTranscriptDiv.scrollTop = 0;
-        editableTranscriptTextarea.scrollTop = 0;
+        editableColumnContentDiv.scrollTop = 0; // Scroll the new container
         activeCueIndex = -1; // Reset active cue tracking
 
         // Start auto-saving after displaying new content
         lastAutoSavedContent = editableTranscriptTextarea.value; // Initialize for auto-save check
         startAutoSave();
+    }
+
+    // NEW: Event handler for timestamp input changes
+    function handleTimestampInput(event) {
+        const inputElement = event.target;
+        const cueIndex = parseInt(inputElement.dataset.cueIndex, 10);
+        const timeType = inputElement.dataset.timeType; // 'start' or 'end'
+        const timeString = inputElement.value;
+
+        const seconds = parseVttTimeToSeconds(timeString);
+
+        if (isNaN(seconds)) {
+            // Invalid format
+            inputElement.classList.add('invalid');
+            inputElement.title = translate('vttInvalidEditableTimeFormat'); // Show error tooltip
+        } else {
+            // Valid format
+            inputElement.classList.remove('invalid');
+            inputElement.title = `${timeType === 'start' ? 'Start' : 'End'} time for cue ${cueIndex + 1}`; // Restore original tooltip
+
+            // Update the transcriptData array
+            if (transcriptData[cueIndex]) {
+                transcriptData[cueIndex][timeType] = seconds;
+                console.log(`Updated cue ${cueIndex} ${timeType} to ${seconds}s`);
+
+                // Optional: Add validation (e.g., start time < end time)
+                const otherTimeType = timeType === 'start' ? 'end' : 'start';
+                const otherInputElement = transcriptData[cueIndex][`${otherTimeType}TimestampInput`];
+                const otherTime = transcriptData[cueIndex][otherTimeType];
+                if (timeType === 'start' && seconds >= otherTime) {
+                     inputElement.classList.add('invalid');
+                     inputElement.title = 'Start time must be before end time.';
+                     otherInputElement?.classList.add('invalid'); // Mark both as potentially invalid
+                } else if (timeType === 'end' && seconds <= otherTime) {
+                     inputElement.classList.add('invalid');
+                     inputElement.title = 'End time must be after start time.';
+                     otherInputElement?.classList.add('invalid');
+                } else {
+                    // If this edit fixed a previous start/end mismatch, remove invalid state from the other input
+                    if (otherInputElement?.classList.contains('invalid')) {
+                         const otherSecondsCheck = parseVttTimeToSeconds(otherInputElement.value);
+                         if (!isNaN(otherSecondsCheck)) { // Only remove if the other value is now valid format
+                             if ((timeType === 'start' && seconds < otherSecondsCheck) || (timeType === 'end' && seconds > otherSecondsCheck)) {
+                                 otherInputElement.classList.remove('invalid');
+                                 otherInputElement.title = `${otherTimeType === 'start' ? 'Start' : 'End'} time for cue ${cueIndex + 1}`;
+                             }
+                         }
+                    }
+                }
+            }
+        }
     }
 
     function formatTime(seconds) {
@@ -423,6 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Etsi aktiivinen cue
         for (let i = 0; i < transcriptData.length; i++) {
             const cue = transcriptData[i];
+            // Use potentially updated times from transcriptData
             if (currentTime >= cue.start && currentTime < cue.end) {
                 newActiveCueIndex = i;
                 break; // Löydetty, ei tarvitse etsiä enempää
@@ -431,9 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Päivitä korostus vain, jos aktiivinen cue muuttui
         if (newActiveCueIndex !== activeCueIndex) {
-            // Poista vanha korostus
-            if (activeCueIndex !== -1 && transcriptData[activeCueIndex]?.element) {
-                transcriptData[activeCueIndex].element.classList.remove('highlight');
+            // Poista vanha korostus (original transcript + timestamp editor)
+            if (activeCueIndex !== -1 && transcriptData[activeCueIndex]) {
+                transcriptData[activeCueIndex].element?.classList.remove('highlight');
+                transcriptData[activeCueIndex].startTimestampInput?.parentNode.classList.remove('highlight'); // Highlight the pair div
             }
 
             // Lisää uusi korostus ja vieritä/valitse
@@ -444,18 +551,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Vieritä korostettu elementti näkyviin alkuperäisessä transkriptiossa
                     activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 }
+                 // Highlight timestamp pair
+                 if (activeCue.startTimestampInput) {
+                    activeCue.startTimestampInput.parentNode.classList.add('highlight'); // Highlight the pair div
+                 }
+
                 // Valitse vastaava teksti muokattavassa kentässä
                 if (typeof activeCue.editableStart === 'number' && typeof activeCue.editableEnd === 'number') {
                     // editableTranscriptTextarea.focus(); // Ensure textarea has focus for selection visibility
                     editableTranscriptTextarea.setSelectionRange(activeCue.editableStart, activeCue.editableEnd);
-                     // Scroll editor to selection (setSelectionRange often does this, but ensure visibility)
+                     // Scroll editor column (parent div) to selection
                     const textLength = editableTranscriptTextarea.value.length;
                     if (textLength > 0) {
-                        const approxScroll = (activeCue.editableStart / textLength) * editableTranscriptTextarea.scrollHeight;
-                        // Simple scroll, might need refinement for perfect positioning
-                        editableTranscriptTextarea.scrollTop = approxScroll - (editableTranscriptTextarea.clientHeight / 3);
+                        // Estimate scroll position based on text selection
+                        const selectionTop = editableTranscriptTextarea.offsetTop + (editableTranscriptTextarea.offsetHeight * (activeCue.editableStart / textLength));
+                        // Scroll the parent container
+                        const scrollTarget = selectionTop - (editableColumnContentDiv.clientHeight / 3);
+                        editableColumnContentDiv.scrollTop = Math.max(0, scrollTarget);
                     }
-
                 }
             } else {
                  // Jos mikään cue ei ole aktiivinen, poista valinta editorista
@@ -536,6 +649,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt'; // Use input value or default
         const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
 
+        // Check for invalid timestamp inputs before saving formats that use them
+        if (selectedFormat === 'vtt' || selectedFormat === 'txt_ts') {
+            const invalidInputs = timestampEditorDiv.querySelectorAll('input.invalid');
+            if (invalidInputs.length > 0) {
+                saveStatus.textContent = `Cannot save: ${invalidInputs.length} invalid timestamp(s) found. Please correct them (HH:MM:SS.sss).`;
+                saveStatus.style.color = 'red';
+                invalidInputs[0].focus(); // Focus the first invalid input
+                return;
+            }
+        }
+
         if (!modifiedTextRaw && selectedFormat !== 'vtt') { // Allow saving empty VTT? Maybe not useful.
             saveStatus.textContent = translate('saveNoText');
             saveStatus.style.color = 'red';
@@ -565,6 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     blobType = 'text/vtt';
                     let vttLines = ["WEBVTT", ""];
                     transcriptData.forEach((cue, index) => {
+                        // *** Use potentially updated start/end times from transcriptData ***
                         const start = formatVttTime(cue.start);
                         const end = formatVttTime(cue.end);
                         const text = editedBlocks[index].trim(); // Use trimmed edited text
@@ -576,7 +701,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (selectedFormat === 'txt_ts') {
                     blobType = 'text/plain;charset=utf-8';
                     const textLines = transcriptData.map((cue, index) => {
-                        const start = formatVttTime(cue.start); // Use VTT format for consistency here too
+                         // *** Use potentially updated start/end times from transcriptData ***
+                        const start = formatVttTime(cue.start);
                         const end = formatVttTime(cue.end);
                         const text = editedBlocks[index].trim();
                         return `[${start} - ${end}] ${text}`;
@@ -600,11 +726,6 @@ document.addEventListener('DOMContentLoaded', () => {
             saveStatus.textContent = translate('saveSuccess', { filename });
             saveStatus.style.color = 'green';
             setTimeout(() => { saveStatus.textContent = ''; }, 5000);
-
-            // Optionally reset autosave state if needed, though maybe not required if format changes
-            // stopAutoSave();
-            // clearAutoSaves();
-            // lastAutoSavedContent = modifiedTextRaw; // Or maybe based on the generated output?
 
         } catch (error) {
             console.error("Tallennusvirhe:", error);
@@ -725,8 +846,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const sourceScrollTop = sourceElement.scrollTop;
         const sourceScrollHeight = sourceElement.scrollHeight;
         const sourceClientHeight = sourceElement.clientHeight;
+
+        // Check if target element exists and is scrollable
+        if (!targetElement || targetElement.scrollHeight <= targetElement.clientHeight) {
+             requestAnimationFrame(() => { isSyncingScroll = false; });
+             return;
+        }
+
         const targetScrollHeight = targetElement.scrollHeight;
         const targetClientHeight = targetElement.clientHeight;
+
 
         // Calculate scroll percentage, handle division by zero if no scrollbar
         const scrollPercentage = sourceScrollHeight > sourceClientHeight
@@ -748,12 +877,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Sync original transcript with the editable column container
     originalTranscriptDiv.addEventListener('scroll', () => {
-        syncScroll(originalTranscriptDiv, editableTranscriptTextarea);
+        syncScroll(originalTranscriptDiv, editableColumnContentDiv);
     });
 
-    editableTranscriptTextarea.addEventListener('scroll', () => {
-        syncScroll(editableTranscriptTextarea, originalTranscriptDiv);
+    // Sync editable column container with the original transcript
+    editableColumnContentDiv.addEventListener('scroll', () => {
+        syncScroll(editableColumnContentDiv, originalTranscriptDiv);
     });
 
 }); // DOMContentLoaded loppuu

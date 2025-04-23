@@ -41,7 +41,15 @@
         </div>
         <div class="column">
             <h2 data-translate-key="editableTranscriptHeading">Muokattava tekstitys</h2>
-            <textarea id="editableTranscript" class="transcript-box" data-translate-key="editableTranscriptPlaceholder" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
+            <!-- Add a wrapper div for side-by-side layout and shared scrolling -->
+            <div id="editableColumnContent" class="editable-column-content transcript-box">
+                <!-- Div to hold timestamp inputs -->
+                <div id="timestampEditor" class="timestamp-editor">
+                    <!-- Timestamp inputs will be generated here by JS -->
+                </div>
+                <!-- Existing textarea -->
+                <textarea id="editableTranscript" class="editable-transcript-area" data-translate-key="editableTranscriptPlaceholder" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
+            </div>
             <p><small data-translate-key="saveNote">Huom: Muokkaukset tässä eivät tallennu automaattisesti.</small></p> <!-- Note: Autosave exists, maybe update this text? -->
             <div class="save-section">
                 <label for="saveFilename" data-translate-key="saveFilenameLabel">Tallenna nimellä:</label>

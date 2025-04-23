@@ -75,8 +75,56 @@ h1, h2 {
     border: 1px solid #ccc;
     padding: 10px;
     background-color: #fff;
-    white-space: pre-wrap; /* Säilyttää rivinvaihdot */
     font-size: 0.9em;
+}
+
+/* NEW: Styles for the container holding timestamps and text editor */
+.editable-column-content {
+    display: flex; /* Enable flexbox for side-by-side layout */
+    gap: 10px; /* Space between timestamps and text */
+    padding: 0; /* Remove padding from container, apply to children if needed */
+    border: 1px solid #ccc; /* Keep border on the container */
+    height: 400px; /* Maintain height */
+    overflow-y: auto; /* Make the container scrollable */
+}
+
+/* NEW: Styles for the timestamp editor column */
+.timestamp-editor {
+    padding: 10px 5px 10px 10px; /* Adjust padding */
+    background-color: #f8f8f8; /* Slightly different background */
+    font-family: monospace;
+    font-size: 0.9em; /* Match textarea */
+    line-height: 1.6; /* Match textarea */
+    white-space: pre; /* Prevent wrapping */
+    overflow: hidden; /* Hide internal overflow */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* NEW: Styles for individual timestamp input containers */
+.timestamp-pair {
+    margin-bottom: calc(1.6em + 1px); /* Approximate line-height + potential border/padding */
+    display: flex;
+    flex-direction: column; /* Stack start/end times */
+    height: calc(2 * 1.6em + 4px); /* Approximate height for two lines of text + padding */
+    justify-content: center; /* Center vertically */
+}
+
+/* NEW: Styles for timestamp inputs */
+.timestamp-editor input {
+    font-family: monospace;
+    font-size: 0.9em; /* Match parent */
+    line-height: 1.4; /* Adjust for input height */
+    border: 1px solid #ddd;
+    padding: 1px 3px;
+    width: 90px; /* Fixed width for HH:MM:SS.sss */
+    margin-bottom: 2px; /* Small space between start/end */
+    box-sizing: border-box;
+}
+
+/* NEW: Style for invalid timestamp input */
+.timestamp-editor input.invalid {
+    border-color: red;
+    background-color: #ffecec;
 }
 
 #originalTranscript p,
@@ -98,14 +146,18 @@ h1, h2 {
     font-weight: bold;
 }
 
+/* ADJUSTED: Remove individual scroll/border/height from textarea */
 #editableTranscript {
-    width: calc(100% - 22px); /* Huomioi padding ja border */
-    height: 400px;
     font-family: inherit;
     font-size: 0.9em;
-    border: 1px solid #ccc;
+    line-height: 1.6; /* Ensure consistent line height */
+    border: none; /* Remove border */
     padding: 10px;
     box-sizing: border-box; /* Padding ja border sisältyvät leveyteen/korkeuteen */
+    flex-grow: 1; /* Allow textarea to take remaining space */
+    resize: none; /* Disable manual resizing */
+    white-space: pre-wrap; /* Keep wrapping */
+    background-color: #fff; /* Ensure background */
 }
 
 /* Style for the selected text in the editable textarea */
