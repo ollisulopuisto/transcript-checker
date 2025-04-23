@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let transcriptData = []; // Taulukko VTT-datan tallentamiseen: { start, end, text, element }
     let originalVttFilename = 'transcript.vtt'; // Store original VTT filename for default save name
+    let isSyncingScroll = false; // Flag to prevent scroll event loops
 
     // --- Tiedostojen lataus ---
 
@@ -148,6 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         editableTranscriptTextarea.value = editableText.trim(); // Poista lopun tyhjä rivi
+
+        // Reset scroll positions when loading new content
+        originalTranscriptDiv.scrollTop = 0;
+        editableTranscriptTextarea.scrollTop = 0;
     }
 
     function formatTime(seconds) {
@@ -248,6 +253,47 @@ document.addEventListener('DOMContentLoaded', () => {
             saveStatus.textContent = 'Tallennus epäonnistui.';
             saveStatus.style.color = 'red';
         }
+    });
+
+    // --- Scroll Synchronization ---
+
+    function syncScroll(sourceElement, targetElement) {
+        if (isSyncingScroll) return; // Prevent infinite loops
+
+        isSyncingScroll = true;
+
+        const sourceScrollTop = sourceElement.scrollTop;
+        const sourceScrollHeight = sourceElement.scrollHeight;
+        const sourceClientHeight = sourceElement.clientHeight;
+        const targetScrollHeight = targetElement.scrollHeight;
+        const targetClientHeight = targetElement.clientHeight;
+
+        // Calculate scroll percentage, handle division by zero if no scrollbar
+        const scrollPercentage = sourceScrollHeight > sourceClientHeight
+            ? sourceScrollTop / (sourceScrollHeight - sourceClientHeight)
+            : 0;
+
+        // Calculate target scroll position
+        const targetScrollTop = scrollPercentage * (targetScrollHeight - targetClientHeight);
+
+        // Set target scroll position if it's significantly different
+        // (Avoids minor fluctuations triggering loops)
+        if (Math.abs(targetElement.scrollTop - targetScrollTop) > 1) {
+             targetElement.scrollTop = targetScrollTop;
+        }
+
+        // Use requestAnimationFrame to reset the flag after the browser has rendered the scroll change
+        requestAnimationFrame(() => {
+            isSyncingScroll = false;
+        });
+    }
+
+    originalTranscriptDiv.addEventListener('scroll', () => {
+        syncScroll(originalTranscriptDiv, editableTranscriptTextarea);
+    });
+
+    editableTranscriptTextarea.addEventListener('scroll', () => {
+        syncScroll(editableTranscriptTextarea, originalTranscriptDiv);
     });
 
 }); // DOMContentLoaded loppuu
