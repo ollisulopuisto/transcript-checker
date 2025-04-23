@@ -20,19 +20,22 @@
     <div id="mainContent" class="hidden">
         <!-- Removed player-section div -->
         <audio id="audioPlayer" controls></audio>
-        <!-- Added Playback Speed Controls -->
-        <div id="playbackSpeedControls">
-            <label for="playbackSpeed" data-translate-key="playbackSpeedLabel">Playback Speed:</label>
-            <select id="playbackSpeed">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1x (Normal)</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2x</option>
-            </select>
+        <!-- Wrapper for time and speed controls -->
+        <div class="time-speed-container">
+            <p class="current-time-display"><span data-translate-key="currentTimeLabel">Nykyinen aika</span> <code id="currentTime">00:00</code></p>
+            <!-- Added Playback Speed Controls -->
+            <div id="playbackSpeedControls">
+                <label for="playbackSpeed" data-translate-key="playbackSpeedLabel">Playback Speed:</label>
+                <select id="playbackSpeed">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x (Normal)</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
         </div>
-        <p class="current-time-display"><span data-translate-key="currentTimeLabel">Nykyinen aika</span>: <code id="currentTime">00:00</code></p>
         <!-- End of removed player-section content -->
 
         <div class="transcription-section">
