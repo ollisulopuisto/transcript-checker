@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContentDiv = document.getElementById('mainContent'); // Added for hiding/showing
     const initialLoadMessageDiv = document.getElementById('initialLoadMessage'); // Added
     const switchToEditorBtn = document.getElementById('switchToEditorBtn'); // Added
+    const playbackSpeedSelect = document.getElementById('playbackSpeed'); // Added
 
     // --- Needed variables for focused segment editing ---
     const previousSegmentsDiv = document.getElementById('previousSegments');
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             langEn: "English", // Added
             langFi: "suomi", // Added
             switchToEditorBtn: "Return to Editor", // Added
+            playbackSpeedLabel: "Playback Speed:", // Added
         },
         fi: {
             pageTitle: "Litteroinnin tarkistustyökalu",
@@ -115,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             langEn: "English", // Added
             langFi: "suomi", // Added
             switchToEditorBtn: "Palaa editoriin", // Added
+            playbackSpeedLabel: "Toistonopeus:", // Added
         }
     };
 
@@ -165,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
          const editablePlaceholder = document.getElementById('editableTranscript');
          if (editablePlaceholder) editablePlaceholder.placeholder = translate('editableTranscriptPlaceholder');
 
+         // Translate playback speed label specifically if needed (already covered by data-translate-key)
+         // const playbackLabel = document.querySelector('label[for="playbackSpeed"]');
+         // if (playbackLabel) playbackLabel.textContent = translate('playbackSpeedLabel');
     }
 
     // --- Auto-save constants and state ---
@@ -376,6 +382,16 @@ document.addEventListener('DOMContentLoaded', () => {
              checkFilesLoaded();
         }
     });
+
+    // --- Playback Speed Control --- Added
+    playbackSpeedSelect.addEventListener('change', (event) => {
+        const speed = parseFloat(event.target.value);
+        if (!isNaN(speed)) {
+            audioPlayer.playbackRate = speed;
+            console.log(`Playback speed set to ${speed}x`);
+        }
+    });
+
 
     // --- VTT-jäsennys ---
 

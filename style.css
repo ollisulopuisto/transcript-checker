@@ -190,6 +190,38 @@ h2 {
     /* border: 1px solid var(--border-color); */
 }
 
+/* Added Playback Speed Controls Styling */
+#playbackSpeedControls {
+    margin-top: 10px; /* Space above controls */
+    margin-bottom: 15px; /* Space below controls */
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between label and select */
+}
+
+#playbackSpeedControls label {
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    margin-bottom: 0; /* Override general label margin */
+}
+
+#playbackSpeedControls select {
+    padding: 5px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--container-bg);
+    color: var(--text-color);
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#playbackSpeedControls select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: var(--focus-ring);
+}
+
 /* Add margin below the current time display */
 .current-time-display {
     margin-bottom: 25px; /* Increased space */
