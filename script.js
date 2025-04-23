@@ -549,26 +549,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (activeCue.element) {
                     activeCue.element.classList.add('highlight');
                     // Vieritä korostettu elementti näkyviin alkuperäisessä transkriptiossa
-                    activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    // Temporarily disable sync listener before scrolling original transcript
+                    originalTranscriptDiv.removeEventListener('scroll', syncOriginalToEditable);
+                    activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    // Re-enable listener after scroll likely finished
+                    requestAnimationFrame(() => {
+                        // Check if listener isn't already added to prevent duplicates if events fire rapidly
+                        originalTranscriptDiv.removeEventListener('scroll', syncOriginalToEditable); // Ensure it's removed first
+                        originalTranscriptDiv.addEventListener('scroll', syncOriginalToEditable);
+                    });
                 }
-                 // Highlight timestamp pair
-                 if (activeCue.startTimestampInput) {
-                    activeCue.startTimestampInput.parentNode.classList.add('highlight'); // Highlight the pair div
+                 // Highlight timestamp pair and scroll it into view
+                 const timestampPairDiv = document.getElementById(`ts-pair-${newActiveCueIndex}`);
+                 if (timestampPairDiv) {
+                    timestampPairDiv.classList.add('highlight');
+                    // Scroll the editable column container to show the highlighted timestamp pair
+                    // Temporarily disable sync listener before scrolling editable container
+                    editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal);
+                    timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    // Re-enable listener after scroll likely finished
+                    requestAnimationFrame(() => {
+                        // Check if listener isn't already added
+                        editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal); // Ensure it's removed first
+                        editableColumnContentDiv.addEventListener('scroll', syncEditableToOriginal);
+                    });
                  }
 
                 // Valitse vastaava teksti muokattavassa kentässä
                 if (typeof activeCue.editableStart === 'number' && typeof activeCue.editableEnd === 'number') {
-                    // editableTranscriptTextarea.focus(); // Ensure textarea has focus for selection visibility
+                    // editableTranscriptTextarea.focus(); // Focusing might steal focus unexpectedly, test if needed
                     editableTranscriptTextarea.setSelectionRange(activeCue.editableStart, activeCue.editableEnd);
-                     // Scroll editor column (parent div) to selection
-                    const textLength = editableTranscriptTextarea.value.length;
-                    if (textLength > 0) {
-                        // Estimate scroll position based on text selection
-                        const selectionTop = editableTranscriptTextarea.offsetTop + (editableTranscriptTextarea.offsetHeight * (activeCue.editableStart / textLength));
-                        // Scroll the parent container
-                        const scrollTarget = selectionTop - (editableColumnContentDiv.clientHeight / 3);
-                        editableColumnContentDiv.scrollTop = Math.max(0, scrollTarget);
-                    }
+                    // The container scroll triggered by timestampPairDiv.scrollIntoView should
+                    // ideally bring the selected text area into view as well.
                 }
             } else {
                  // Jos mikään cue ei ole aktiivinen, poista valinta editorista
@@ -867,7 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Set target scroll position if it's significantly different
         // (Avoids minor fluctuations triggering loops)
-        if (Math.abs(targetElement.scrollTop - targetScrollTop) > 1) {
+        // Increase tolerance slightly to avoid fighting with smooth scrollIntoView
+        if (Math.abs(targetElement.scrollTop - targetScrollTop) > 2) {
              targetElement.scrollTop = targetScrollTop;
         }
 
@@ -877,14 +890,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Sync original transcript with the editable column container
-    originalTranscriptDiv.addEventListener('scroll', () => {
+    // Define named functions for scroll listeners
+    const syncOriginalToEditable = () => {
         syncScroll(originalTranscriptDiv, editableColumnContentDiv);
-    });
-
-    // Sync editable column container with the original transcript
-    editableColumnContentDiv.addEventListener('scroll', () => {
+    };
+    const syncEditableToOriginal = () => {
         syncScroll(editableColumnContentDiv, originalTranscriptDiv);
-    });
+    };
+
+    // Add initial listeners using the named functions
+    originalTranscriptDiv.addEventListener('scroll', syncOriginalToEditable);
+    editableColumnContentDiv.addEventListener('scroll', syncEditableToOriginal);
+
 
 }); // DOMContentLoaded loppuu

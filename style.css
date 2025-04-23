@@ -107,6 +107,18 @@ h1, h2 {
     flex-direction: column; /* Stack start/end times */
     height: calc(2 * 1.6em + 4px); /* Approximate height for two lines of text + padding */
     justify-content: center; /* Center vertically */
+    transition: background-color 0.2s ease-in-out; /* Smooth transition for highlight */
+    border-radius: 3px; /* Match original transcript highlight */
+    padding: 2px 0; /* Add slight vertical padding for highlight */
+    margin-left: -5px; /* Adjust position slightly for highlight */
+    padding-left: 5px; /* Adjust position slightly for highlight */
+    margin-right: -5px; /* Adjust position slightly for highlight */
+    padding-right: 5px; /* Adjust position slightly for highlight */
+}
+
+/* NEW: Highlight style for the active timestamp pair */
+.timestamp-pair.highlight {
+    background-color: #f0e68c; /* Match original transcript highlight */
 }
 
 /* NEW: Styles for timestamp inputs */
