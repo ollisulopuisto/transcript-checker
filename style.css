@@ -25,23 +25,40 @@ body {
     color: var(--text-color);
 }
 
+/* Header layout */
+.header-container {
+    display: flex;
+    align-items: center; /* Vertically align items */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    gap: 15px; /* Space between title and selector */
+    margin-bottom: 20px; /* Space below header */
+    border-bottom: 1px solid var(--border-color); /* Keep bottom border */
+    padding-bottom: 8px;
+}
+
 h1, h2 {
     color: var(--text-color);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px; /* Increased padding */
-    margin-bottom: 16px; /* Increased margin */
+    /* Remove border and padding from individual h1/h2 */
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 16px; /* Keep margin for h2 */
 }
 
 h1 {
     font-size: 2em;
+    margin-bottom: 0; /* Remove bottom margin from h1 inside flex */
+    flex-grow: 1; /* Allow title to take available space */
 }
 
 h2 {
     font-size: 1.5em;
+    /* Add back border for h2 */
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
 }
 
 /* General container styling */
-.controls, .player-section, .column, .save-section {
+.controls, /* .player-section removed */ .column, .save-section {
     margin-bottom: 20px;
     background-color: var(--container-bg);
     padding: 20px; /* Increased padding */
@@ -52,9 +69,12 @@ h2 {
 
 /* Language Selector */
 #languageSelector {
-    background-color: var(--timestamp-bg); /* Use timestamp bg */
-    border: 1px solid var(--border-color);
-    padding: 10px 15px;
+    /* Remove background and border */
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0; /* Remove default margins */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 #languageSelector button {
@@ -116,16 +136,19 @@ h2 {
     background-color: var(--accent-hover-color);
 }
 
-/* Player Section */
-.player-section {
-    /* Styles already defined in general container */
-}
+/* Player Section - Removed */
 
 /* Enhanced audio player styling */
 #audioPlayer {
     width: 100%;
     height: 45px; /* Slightly taller */
     margin-top: 10px; /* Add some space above */
+    margin-bottom: 5px; /* Space below player */
+}
+
+/* Add margin below the current time display */
+.current-time-display {
+    margin-bottom: 20px;
 }
 
 /* Style the audio player progress bar (works in most modern browsers) */

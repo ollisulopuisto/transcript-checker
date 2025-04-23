@@ -7,21 +7,21 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1 data-translate-key="mainHeading">Litteroinnin tarkistustyökalu</h1>
-
-    <div id="languageSelector" style="margin-bottom: 15px; padding: 5px; background-color: #eee; border-radius: 4px;">
-        <span data-translate-key="selectLanguageLabel" style="margin-right: 10px;">Valitse kieli:</span>
-        <button id="langBtnEn" data-translate-key="langEn">English</button>
-        <button id="langBtnFi" data-translate-key="langFi">Suomi</button>
+    <div class="header-container"> <!-- Added wrapper for flex layout -->
+        <h1 data-translate-key="mainHeading">Litteroinnin tarkistustyökalu</h1>
+        <div id="languageSelector"> <!-- Moved here -->
+            <span data-translate-key="selectLanguageLabel" style="margin-right: 10px;">Valitse kieli:</span>
+            <button id="langBtnEn" data-translate-key="langEn">English</button>
+            <button id="langBtnFi" data-translate-key="langFi">Suomi</button>
+        </div>
     </div>
 
     <!-- Main content area - initially hidden -->
     <div id="mainContent" class="hidden">
-        <div class="player-section">
-            <h2 data-translate-key="audioHeading">Äänitiedosto</h2>
-            <audio id="audioPlayer" controls></audio>
-            <p><span data-translate-key="currentTimeLabel">Nykyinen aika</span>: <code id="currentTime">00:00</code></p>
-        </div>
+        <!-- Removed player-section div -->
+        <audio id="audioPlayer" controls></audio>
+        <p class="current-time-display"><span data-translate-key="currentTimeLabel">Nykyinen aika</span>: <code id="currentTime">00:00</code></p>
+        <!-- End of removed player-section content -->
 
         <div class="transcription-section">
             <div class="column">
