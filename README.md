@@ -2,7 +2,7 @@
 
 A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source.
 
-![alt text](<transcript screenshot.png>)
+![screenshot](<transcript screenshot.png>)
 
 ## How to Use
 
