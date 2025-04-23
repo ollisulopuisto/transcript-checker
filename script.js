@@ -54,15 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleFileInputsBtn: "Load New Files", // Added
         },
         fi: {
-            pageTitle: "Litteroinnin Tarkistustyökalu",
-            mainHeading: "Litteroinnin Tarkistustyökalu",
+            pageTitle: "Litteroinnin tarkistustyökalu",
+            mainHeading: "Litteroinnin tarkistustyökalu",
             audioFileLabel: "1. Valitse äänitiedosto:",
             vttFileLabel: "2. Valitse VTT-tekstitystiedosto:",
             audioHeading: "Äänitiedosto",
             currentTimeLabel: "Nykyinen aika",
-            originalTranscriptHeading: "Alkuperäinen Tekstitys (VTT)",
+            originalTranscriptHeading: "Alkuperäinen tekstitys (VTT)",
             loadFilesPrompt: "Lataa ensin äänitiedosto ja VTT-tiedosto.",
-            editableTranscriptHeading: "Muokattava Tekstitys (korjaa tähän)",
+            editableTranscriptHeading: "Muokattava tekstitys",
             editableTranscriptPlaceholder: "Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi...",
             saveNote: "Huom: Muutokset tallentuvat automaattisesti paikallisesti.", // Updated note
             saveFilenameLabel: "Tallenna nimellä:",
