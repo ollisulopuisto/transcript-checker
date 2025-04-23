@@ -96,6 +96,12 @@ h1, h2 {
     box-sizing: border-box; /* Padding ja border sisältyvät leveyteen/korkeuteen */
 }
 
+/* Style for the selected text in the editable textarea */
+#editableTranscript::selection {
+    background-color: #f0e68c; /* Same highlight color as the original transcript */
+    color: #333; /* Ensure text remains readable */
+}
+
 small {
     color: #555;
 }
