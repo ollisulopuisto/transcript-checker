@@ -117,3 +117,16 @@ h1, h2 {
 small {
     color: #555;
 }
+
+#currentTime {
+    background-color: #eee;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.95em;
+    cursor: text; /* Indicate it's selectable text */
+    user-select: all; /* Make double-click select all */
+    -webkit-user-select: all; /* Safari */
+    -moz-user-select: all; /* Firefox */
+    -ms-user-select: all; /* IE/Edge */
+}

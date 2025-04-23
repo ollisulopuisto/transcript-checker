@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-translate-key="pageTitle">Litteroinnin Tarkistustyökalu</title>
+    <title data-translate-key="pageTitle">Litteroinnin tarkistustyökalu</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1 data-translate-key="mainHeading">Litteroinnin Tarkistustyökalu</h1>
+    <h1 data-translate-key="mainHeading">Litteroinnin tarkistustyökalu</h1>
 
     <div class="controls">
         <div id="fileInputContainer"> <!-- Added container -->
@@ -23,18 +23,18 @@
     <div class="player-section">
         <h2 data-translate-key="audioHeading">Äänitiedosto</h2>
         <audio id="audioPlayer" controls></audio>
-        <p><span data-translate-key="currentTimeLabel">Nykyinen aika</span>: <span id="currentTime">0.00</span>s</p>
+        <p><span data-translate-key="currentTimeLabel">Nykyinen aika</span>: <code id="currentTime">00:00</code></p>
     </div>
 
     <div class="transcription-section">
         <div class="column">
-            <h2 data-translate-key="originalTranscriptHeading">Alkuperäinen Tekstitys (VTT)</h2>
+            <h2 data-translate-key="originalTranscriptHeading">Alkuperäinen tekstitys (VTT)</h2>
             <div id="originalTranscript" class="transcript-box">
                 <p data-translate-key="loadFilesPrompt">Lataa ensin äänitiedosto ja VTT-tiedosto.</p>
             </div>
         </div>
         <div class="column">
-            <h2 data-translate-key="editableTranscriptHeading">Muokattava Tekstitys (korjaa tähän)</h2>
+            <h2 data-translate-key="editableTranscriptHeading">Muokattava tekstitys</h2>
             <textarea id="editableTranscript" class="transcript-box" data-translate-key="editableTranscriptPlaceholder" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
             <p><small data-translate-key="saveNote">Huom: Muokkaukset tässä eivät tallennu automaattisesti.</small></p> <!-- Note: Autosave exists, maybe update this text? -->
             <div class="save-section">
