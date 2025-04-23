@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFilenameInput = document.getElementById('saveFilename');
     const saveStatus = document.getElementById('saveStatus');
     const htmlElement = document.documentElement; // Get the <html> element
+    const saveFormatOptions = document.getElementById('saveFormatOptions'); // Container for format radios
 
     // --- i18n Translations ---
     const translations = {
@@ -26,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
             saveNote: "Note: Changes here are auto-saved locally.", // Updated note reflecting autosave
             saveFilenameLabel: "Save as:",
             saveButton: "Save Modified Text",
+            saveFormatLabel: "Save format:",
+            formatTxtPlainLabel: "Text without timestamps (.txt)",
+            formatTxtTsLabel: "Text with timestamps (.txt)",
+            formatVttLabel: "VTT with timestamps (.vtt)",
             // Dynamic strings
             vttParseError: "Error parsing VTT file. Check format.",
             vttReadError: "Error reading VTT file.",
@@ -40,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveError: "Save failed.",
             autosaveLoaded: 'Loaded content autosaved at {time}.',
             autosaveFailed: 'Autosave failed. Saving stopped.',
+            saveBlockMismatchError: "Error: The number of text blocks (separated by double newlines) in the editor does not match the number of original VTT cues. Cannot save with timestamps.",
             // VTT parsing errors
             vttInvalidTimeFormat: "Invalid time format: {timeString}",
             vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
@@ -58,6 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
             saveNote: "Huom: Muutokset tallentuvat automaattisesti paikallisesti.", // Updated note
             saveFilenameLabel: "Tallenna nimellä:",
             saveButton: "Tallenna muokattu teksti",
+            saveFormatLabel: "Tallenna muodossa:",
+            formatTxtPlainLabel: "Teksti ilman aikaleimoja (.txt)",
+            formatTxtTsLabel: "Teksti aikaleimoilla (.txt)",
+            formatVttLabel: "VTT aikaleimoilla (.vtt)",
             // Dynamic strings
             vttParseError: "Virhe VTT-tiedoston jäsentämisessä. Tarkista muoto.",
             vttReadError: "Virhe VTT-tiedoston lukemisessa.",
@@ -72,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveError: "Tallennus epäonnistui.",
             autosaveLoaded: 'Ladattiin automaattisesti tallennettu sisältö ajalta {time}.',
             autosaveFailed: 'Automaattitallennus epäonnistui. Tallennus pysäytetty.',
+            saveBlockMismatchError: "Virhe: Tekstilohkojen määrä (eroteltu tyhjillä riveillä) editorissa ei vastaa alkuperäisten VTT-lohkojen määrää. Ei voida tallentaa aikaleimoilla.",
             // VTT parsing errors
             vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
             vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
@@ -157,8 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
             lastAutoSavedContent = ''; // Reset last saved content tracker
 
             originalVttFilename = file.name; // Store the original filename
-            // Set default save filename based on original VTT name
-            saveFilenameInput.value = originalVttFilename.replace(/\.vtt$/i, '_modified.txt') || 'modified_transcript.txt';
+            // Set default save filename based on selected format (initially plain text)
+            updateDefaultFilename();
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -302,12 +313,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toISOString().substr(11, 12); // Muoto HH:MM:SS.sss
     }
 
+    // --- Timestamp Formatting ---
+    function formatVttTime(seconds) {
+        const date = new Date(0);
+        date.setSeconds(seconds);
+        // Format: HH:MM:SS.sss (ensure 3 decimal places)
+        const timeStr = date.toISOString().substr(11, 12);
+        // Ensure milliseconds part has 3 digits
+        const parts = timeStr.split('.');
+        const ms = (parts[1] || '000').padEnd(3, '0');
+        return `${parts[0]}.${ms}`;
+    }
+
+    function formatDisplayTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) {
+            return "00:00";
+        }
+        const totalSeconds = Math.floor(seconds);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+
+        const paddedMinutes = String(minutes).padStart(2, '0');
+        const paddedSeconds = String(secs).padStart(2, '0');
+
+        if (hours > 0) {
+            const paddedHours = String(hours).padStart(2, '0');
+            return `${paddedHours}:${paddedMinutes}:${paddedSeconds}`;
+        } else {
+            return `${paddedMinutes}:${paddedSeconds}`;
+        }
+    }
 
     // --- Toiston synkronointi ---
 
     audioPlayer.addEventListener('timeupdate', () => {
         const currentTime = audioPlayer.currentTime;
-        currentTimeSpan.textContent = currentTime.toFixed(2); // Näytä aika
+        // Use formatDisplayTime for the UI
+        currentTimeSpan.textContent = formatDisplayTime(currentTime);
 
         let newActiveCueIndex = -1;
 
@@ -396,21 +439,88 @@ document.addEventListener('DOMContentLoaded', () => {
         originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('audioErrorGeneric')}${errorMessage}</p>`;
     });
 
+    // --- Save Filename Update ---
+    function updateDefaultFilename() {
+        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
+        let extension = '.txt';
+        let suffix = '_modified';
+
+        if (selectedFormat === 'vtt') {
+            extension = '.vtt';
+            suffix = '_modified';
+        } else if (selectedFormat === 'txt_ts') {
+            extension = '.txt';
+            suffix = '_modified_with_ts';
+        } else { // txt_plain
+            extension = '.txt';
+            suffix = '_modified';
+        }
+
+        const baseName = originalVttFilename.replace(/\.vtt$/i, '');
+        saveFilenameInput.value = `${baseName}${suffix}${extension}`;
+    }
+
+    // Add listener to format options
+    saveFormatOptions.addEventListener('change', updateDefaultFilename);
+
     // --- Muokatun tekstityksen tallennus ---
 
     saveButton.addEventListener('click', () => {
-        const modifiedText = editableTranscriptTextarea.value;
+        const modifiedTextRaw = editableTranscriptTextarea.value;
         const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt'; // Use input value or default
+        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
 
-        if (!modifiedText) {
-            // Use translation
+        if (!modifiedTextRaw && selectedFormat !== 'vtt') { // Allow saving empty VTT? Maybe not useful.
             saveStatus.textContent = translate('saveNoText');
             saveStatus.style.color = 'red';
             return;
         }
 
+        let outputContent = '';
+        let blobType = 'text/plain;charset=utf-8';
+
         try {
-            const blob = new Blob([modifiedText], { type: 'text/plain;charset=utf-8' });
+            if (selectedFormat === 'txt_plain') {
+                outputContent = modifiedTextRaw;
+                blobType = 'text/plain;charset=utf-8';
+            } else {
+                // VTT and TXT_TS require mapping edited text back to cues
+                const editedBlocks = modifiedTextRaw.split('\n\n');
+
+                // *** Crucial Check ***
+                if (editedBlocks.length !== transcriptData.length) {
+                    saveStatus.textContent = translate('saveBlockMismatchError');
+                    saveStatus.style.color = 'red';
+                    console.error(`Block count mismatch: ${editedBlocks.length} edited vs ${transcriptData.length} original cues.`);
+                    return;
+                }
+
+                if (selectedFormat === 'vtt') {
+                    blobType = 'text/vtt';
+                    let vttLines = ["WEBVTT", ""];
+                    transcriptData.forEach((cue, index) => {
+                        const start = formatVttTime(cue.start);
+                        const end = formatVttTime(cue.end);
+                        const text = editedBlocks[index].trim(); // Use trimmed edited text
+                        vttLines.push(`${start} --> ${end}`);
+                        vttLines.push(text);
+                        vttLines.push(""); // Add empty line between cues
+                    });
+                    outputContent = vttLines.join('\n');
+                } else if (selectedFormat === 'txt_ts') {
+                    blobType = 'text/plain;charset=utf-8';
+                    const textLines = transcriptData.map((cue, index) => {
+                        const start = formatVttTime(cue.start); // Use VTT format for consistency here too
+                        const end = formatVttTime(cue.end);
+                        const text = editedBlocks[index].trim();
+                        return `[${start} - ${end}] ${text}`;
+                    });
+                    outputContent = textLines.join('\n\n'); // Separate blocks with double newline
+                }
+            }
+
+            // Create and download blob
+            const blob = new Blob([outputContent], { type: blobType });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement('a');
@@ -421,20 +531,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(link); // Clean up
             URL.revokeObjectURL(url); // Free up memory
 
-            // Use translation
             saveStatus.textContent = translate('saveSuccess', { filename });
             saveStatus.style.color = 'green';
-            // Clear status after a few seconds
             setTimeout(() => { saveStatus.textContent = ''; }, 5000);
 
-            // Stop and clear auto-saves after successful manual save
-            stopAutoSave();
-            clearAutoSaves();
-            lastAutoSavedContent = modifiedText; // Update last saved content to prevent immediate re-save if interval continues
+            // Optionally reset autosave state if needed, though maybe not required if format changes
+            // stopAutoSave();
+            // clearAutoSaves();
+            // lastAutoSavedContent = modifiedTextRaw; // Or maybe based on the generated output?
 
         } catch (error) {
             console.error("Tallennusvirhe:", error);
-            // Use translation
             saveStatus.textContent = translate('saveError');
             saveStatus.style.color = 'red';
         }

@@ -37,6 +37,15 @@
             <div class="save-section">
                 <label for="saveFilename" data-translate-key="saveFilenameLabel">Tallenna nimellä:</label>
                 <input type="text" id="saveFilename" value="modified_transcript.txt">
+                <div id="saveFormatOptions" style="margin-top: 10px; margin-bottom: 10px;">
+                    <label data-translate-key="saveFormatLabel">Tallenna muodossa:</label><br>
+                    <input type="radio" id="formatTxtPlain" name="saveFormat" value="txt_plain" checked>
+                    <label for="formatTxtPlain" data-translate-key="formatTxtPlainLabel">Teksti ilman aikaleimoja (.txt)</label><br>
+                    <input type="radio" id="formatTxtTs" name="saveFormat" value="txt_ts">
+                    <label for="formatTxtTs" data-translate-key="formatTxtTsLabel">Teksti aikaleimoilla (.txt)</label><br>
+                    <input type="radio" id="formatVtt" name="saveFormat" value="vtt">
+                    <label for="formatVtt" data-translate-key="formatVttLabel">VTT aikaleimoilla (.vtt)</label><br>
+                </div>
                 <button id="saveButton" data-translate-key="saveButton">Tallenna muokattu teksti</button>
                 <p id="saveStatus" style="font-size: 0.8em; color: green;"></p>
             </div>
