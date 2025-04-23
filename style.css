@@ -30,6 +30,18 @@ h1, h2 {
     margin-bottom: 15px;
 }
 
+/* Style to hide the file input container */
+#fileInputContainer.hidden {
+    display: none;
+}
+
+/* Style for the toggle button */
+#toggleFileInputsBtn {
+    margin-top: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
 .player-section {
     margin-bottom: 20px;
     background-color: #fff;

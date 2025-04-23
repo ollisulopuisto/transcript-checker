@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveStatus = document.getElementById('saveStatus');
     const htmlElement = document.documentElement; // Get the <html> element
     const saveFormatOptions = document.getElementById('saveFormatOptions'); // Container for format radios
+    const fileInputContainer = document.getElementById('fileInputContainer'); // Added
+    const toggleFileInputsBtn = document.getElementById('toggleFileInputsBtn'); // Added
 
     // --- i18n Translations ---
     const translations = {
@@ -49,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // VTT parsing errors
             vttInvalidTimeFormat: "Invalid time format: {timeString}",
             vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
+            toggleFileInputsBtn: "Load New Files", // Added
         },
         fi: {
             pageTitle: "Litteroinnin Tarkistustyökalu",
@@ -86,10 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // VTT parsing errors
             vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
             vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
+            toggleFileInputsBtn: "Lataa uudet tiedostot", // Added
         }
     };
 
     let currentLang = 'en'; // Default language
+    let audioFileLoaded = false; // Added state tracker
+    let vttFileLoaded = false;   // Added state tracker
 
     // --- i18n Functions ---
     function getBrowserLanguage() {
@@ -147,6 +153,29 @@ document.addEventListener('DOMContentLoaded', () => {
     translateUI(); // Translate UI on load
     loadLatestAutoSave(); // Load autosave after translating
 
+    // --- File Loading Visibility Toggle ---
+    function checkFilesLoaded() {
+        if (audioFileLoaded && vttFileLoaded) {
+            fileInputContainer.classList.add('hidden');
+            toggleFileInputsBtn.style.display = 'block'; // Show the button
+        }
+    }
+
+    toggleFileInputsBtn.addEventListener('click', () => {
+        fileInputContainer.classList.remove('hidden');
+        toggleFileInputsBtn.style.display = 'none'; // Hide the button again
+        // Reset loaded status if user wants to load new files
+        audioFileLoaded = false;
+        vttFileLoaded = false;
+        // Optionally clear existing content or prompt user
+        // audioPlayer.src = '';
+        // originalTranscriptDiv.innerHTML = `<p data-translate-key="loadFilesPrompt">${translate('loadFilesPrompt')}</p>`;
+        // editableTranscriptTextarea.value = '';
+        // transcriptData = [];
+        // stopAutoSave();
+        // clearAutoSaves();
+    });
+
     // --- Tiedostojen lataus ---
 
     audioFileInput.addEventListener('change', (event) => {
@@ -156,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             audioPlayer.src = objectURL;
             // URL.revokeObjectURL(objectURL); // Voi vapauttaa muistia myöhemmin, mutta tarvitaan toistoon
             console.log("Äänitiedosto ladattu:", file.name);
+            audioFileLoaded = true; // Mark as loaded
+            checkFilesLoaded(); // Check if both are loaded
         }
     });
 
@@ -177,11 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     transcriptData = parseVTT(e.target.result);
                     displayTranscription(transcriptData);
                     console.log("VTT-tiedosto ladattu ja jäsennetty:", file.name);
+                    vttFileLoaded = true; // Mark as loaded
+                    checkFilesLoaded(); // Check if both are loaded
                 } catch (error) {
                     console.error("VTT-tiedoston jäsennysvirhe:", error);
                     // Use translation for error message
                     originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
                     editableTranscriptTextarea.value = "";
+                    vttFileLoaded = false; // Mark as not loaded on error
                 }
             };
             reader.onerror = (e) => {
@@ -189,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  // Use translation for error message
                 originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttReadError')}</p>`;
                 editableTranscriptTextarea.value = "";
+                vttFileLoaded = false; // Mark as not loaded on error
             };
             reader.readAsText(file);
         }
