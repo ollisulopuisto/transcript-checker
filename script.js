@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTimeLabel: "Current Time",
             originalTranscriptHeading: "Original Transcript (VTT)",
             loadFilesPrompt: "First, load an audio file and a VTT file.",
-            editableTranscriptHeading: "Editable Transcript (correct here)",
+            editableTranscriptHeading: "Edit the Transcript",
             editableTranscriptPlaceholder: "Transcript text without timestamps will appear here for editing...",
             saveNote: "Note: Changes here are auto-saved locally.", // Updated note reflecting autosave
             saveFilenameLabel: "Save as:",
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Language Selector
             selectLanguageLabel: "Select UI Language:", // Added
             langEn: "English", // Added
-            langFi: "Suomi", // Added
+            langFi: "suomi", // Added
             switchToEditorBtn: "Return to Editor", // Added
         },
         fi: {
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Language Selector
             selectLanguageLabel: "Valitse käyttöliittymän kieli:", // Added
             langEn: "English", // Added
-            langFi: "Suomi", // Added
+            langFi: "suomi", // Added
             switchToEditorBtn: "Palaa editoriin", // Added
         }
     };
