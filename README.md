@@ -6,7 +6,7 @@ A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcr
 
 ## How to Use
 
-1.  **Open `index.html`**: In your web browser of choice.
+1.  **Open `index.html`** in your web browser of choice.
 2.  **Select Language**: Use the buttons at the top to choose the UI language (English/Finnish). It should default to whatever the browser's set to.
 3.  **Load Files**:
     *   Click the first "Choose File" button to select your audio file (e.g., MP3, WAV, OGG).
