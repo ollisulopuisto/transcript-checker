@@ -9,9 +9,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFilenameInput = document.getElementById('saveFilename');
     const saveStatus = document.getElementById('saveStatus');
 
+    // --- Auto-save constants and state ---
+    const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
+    const MAX_AUTOSAVE_VERSIONS = 20;
+    const AUTOSAVE_KEY_PREFIX = 'autosave_transcript_';
+    let lastAutoSavedContent = '';
+    let autoSaveIntervalId = null;
+
     let transcriptData = []; // Taulukko VTT-datan tallentamiseen: { start, end, text, element }
     let originalVttFilename = 'transcript.vtt'; // Store original VTT filename for default save name
     let isSyncingScroll = false; // Flag to prevent scroll event loops
+
+    // --- Load latest autosave on startup ---
+    loadLatestAutoSave();
 
     // --- Tiedostojen lataus ---
 
@@ -28,6 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
     vttFileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
+            // Stop and clear previous auto-saves before loading new file
+            stopAutoSave();
+            clearAutoSaves();
+            lastAutoSavedContent = ''; // Reset last saved content tracker
+
             originalVttFilename = file.name; // Store the original filename
             // Set default save filename based on original VTT name
             saveFilenameInput.value = originalVttFilename.replace(/\.vtt$/i, '_modified.txt') || 'modified_transcript.txt';
@@ -153,6 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset scroll positions when loading new content
         originalTranscriptDiv.scrollTop = 0;
         editableTranscriptTextarea.scrollTop = 0;
+
+        // Start auto-saving after displaying new content
+        lastAutoSavedContent = editableTranscriptTextarea.value; // Initialize for auto-save check
+        startAutoSave();
     }
 
     function formatTime(seconds) {
@@ -248,12 +267,113 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear status after a few seconds
             setTimeout(() => { saveStatus.textContent = ''; }, 5000);
 
+            // Stop and clear auto-saves after successful manual save
+            stopAutoSave();
+            clearAutoSaves();
+            lastAutoSavedContent = modifiedText; // Update last saved content to prevent immediate re-save if interval continues
+
         } catch (error) {
             console.error("Tallennusvirhe:", error);
             saveStatus.textContent = 'Tallennus epäonnistui.';
             saveStatus.style.color = 'red';
         }
     });
+
+    // --- Auto-save Functions ---
+
+    function autoSaveTranscript() {
+        const currentText = editableTranscriptTextarea.value;
+        if (currentText === lastAutoSavedContent || !currentText.trim()) {
+            // Don't save if content hasn't changed or is empty/whitespace
+            return;
+        }
+
+        try {
+            const timestamp = Date.now();
+            const keys = Object.keys(localStorage)
+                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX))
+                .sort(); // Sorts alphabetically, which works for timestamp-based keys
+
+            // Remove oldest versions if limit exceeded
+            while (keys.length >= MAX_AUTOSAVE_VERSIONS) {
+                const oldestKey = keys.shift(); // Get and remove the first (oldest) key
+                localStorage.removeItem(oldestKey);
+                console.log("Removed oldest autosave:", oldestKey);
+            }
+
+            // Save current version
+            const newKey = AUTOSAVE_KEY_PREFIX + timestamp;
+            localStorage.setItem(newKey, currentText);
+            lastAutoSavedContent = currentText; // Update last saved content
+            console.log("Autosaved:", newKey);
+
+        } catch (error) {
+            console.error("Autosave failed:", error);
+            // Optionally, display a message to the user or stop auto-saving
+            stopAutoSave();
+            saveStatus.textContent = 'Autosave failed. Saving stopped.';
+            saveStatus.style.color = 'red';
+        }
+    }
+
+    function startAutoSave() {
+        stopAutoSave(); // Clear any existing interval first
+        autoSaveIntervalId = setInterval(autoSaveTranscript, AUTO_SAVE_INTERVAL);
+        console.log("Autosave started.");
+    }
+
+    function stopAutoSave() {
+        if (autoSaveIntervalId) {
+            clearInterval(autoSaveIntervalId);
+            autoSaveIntervalId = null;
+            console.log("Autosave stopped.");
+        }
+    }
+
+    function clearAutoSaves() {
+        try {
+            const keys = Object.keys(localStorage)
+                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX));
+            keys.forEach(key => localStorage.removeItem(key));
+            console.log("Cleared all autosaves.");
+        } catch (error) {
+            console.error("Failed to clear autosaves:", error);
+        }
+    }
+
+    function loadLatestAutoSave() {
+        try {
+            const keys = Object.keys(localStorage)
+                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX))
+                .sort(); // Sorts oldest to newest
+
+            if (keys.length > 0) {
+                const latestKey = keys[keys.length - 1]; // Get the last (latest) key
+                const savedText = localStorage.getItem(latestKey);
+                if (savedText) {
+                    editableTranscriptTextarea.value = savedText;
+                    lastAutoSavedContent = savedText; // Initialize last saved content
+                    console.log("Loaded latest autosave:", latestKey);
+                    saveStatus.textContent = `Loaded content autosaved at ${new Date(parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''))).toLocaleTimeString()}.`;
+                    saveStatus.style.color = 'blue';
+                    // Clear message after a while
+                    setTimeout(() => {
+                        if (saveStatus.textContent.startsWith('Loaded content')) {
+                             saveStatus.textContent = '';
+                        }
+                    }, 7000);
+                    // Start auto-saving immediately if content was recovered
+                    startAutoSave();
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load latest autosave:", error);
+        }
+    }
+
+    // Optional: Stop auto-save when navigating away
+    window.addEventListener('beforeunload', stopAutoSave);
+
 
     // --- Scroll Synchronization ---
 
