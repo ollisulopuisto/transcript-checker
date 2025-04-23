@@ -8,6 +8,117 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveButton = document.getElementById('saveButton');
     const saveFilenameInput = document.getElementById('saveFilename');
     const saveStatus = document.getElementById('saveStatus');
+    const htmlElement = document.documentElement; // Get the <html> element
+
+    // --- i18n Translations ---
+    const translations = {
+        en: {
+            pageTitle: "Transcription Checker Tool",
+            mainHeading: "Transcription Checker Tool",
+            audioFileLabel: "1. Select Audio File:",
+            vttFileLabel: "2. Select VTT Subtitle File:",
+            audioHeading: "Audio File",
+            currentTimeLabel: "Current Time",
+            originalTranscriptHeading: "Original Transcript (VTT)",
+            loadFilesPrompt: "First, load an audio file and a VTT file.",
+            editableTranscriptHeading: "Editable Transcript (correct here)",
+            editableTranscriptPlaceholder: "Transcript text without timestamps will appear here for editing...",
+            saveNote: "Note: Changes here are auto-saved locally.", // Updated note reflecting autosave
+            saveFilenameLabel: "Save as:",
+            saveButton: "Save Modified Text",
+            // Dynamic strings
+            vttParseError: "Error parsing VTT file. Check format.",
+            vttReadError: "Error reading VTT file.",
+            audioErrorUnknown: "Unknown audio error.",
+            audioErrorAborted: "Audio playback aborted.",
+            audioErrorNetwork: "Network error prevented audio loading.",
+            audioErrorDecode: "Audio could not be decoded (file might be corrupt or format not supported).",
+            audioErrorNotSupported: "Audio format not supported.",
+            audioErrorGeneric: "Audio error: ",
+            saveNoText: "No text to save.",
+            saveSuccess: 'File "{filename}" saved.',
+            saveError: "Save failed.",
+            autosaveLoaded: 'Loaded content autosaved at {time}.',
+            autosaveFailed: 'Autosave failed. Saving stopped.',
+            // VTT parsing errors
+            vttInvalidTimeFormat: "Invalid time format: {timeString}",
+            vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
+        },
+        fi: {
+            pageTitle: "Litteroinnin Tarkistustyökalu",
+            mainHeading: "Litteroinnin Tarkistustyökalu",
+            audioFileLabel: "1. Valitse äänitiedosto:",
+            vttFileLabel: "2. Valitse VTT-tekstitystiedosto:",
+            audioHeading: "Äänitiedosto",
+            currentTimeLabel: "Nykyinen aika",
+            originalTranscriptHeading: "Alkuperäinen Tekstitys (VTT)",
+            loadFilesPrompt: "Lataa ensin äänitiedosto ja VTT-tiedosto.",
+            editableTranscriptHeading: "Muokattava Tekstitys (korjaa tähän)",
+            editableTranscriptPlaceholder: "Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi...",
+            saveNote: "Huom: Muutokset tallentuvat automaattisesti paikallisesti.", // Updated note
+            saveFilenameLabel: "Tallenna nimellä:",
+            saveButton: "Tallenna muokattu teksti",
+            // Dynamic strings
+            vttParseError: "Virhe VTT-tiedoston jäsentämisessä. Tarkista muoto.",
+            vttReadError: "Virhe VTT-tiedoston lukemisessa.",
+            audioErrorUnknown: "Tuntematon äänivirhe.",
+            audioErrorAborted: "Äänen toisto keskeytettiin.",
+            audioErrorNetwork: "Verkkovirhe esti äänen lataamisen.",
+            audioErrorDecode: "Ääntä ei voitu purkaa (tiedosto voi olla vioittunut tai selain ei tue muotoa).",
+            audioErrorNotSupported: "Äänimuotoa ei tueta.",
+            audioErrorGeneric: "Äänivirhe: ",
+            saveNoText: "Ei tallennettavaa tekstiä.",
+            saveSuccess: 'Tiedosto "{filename}" tallennettu.',
+            saveError: "Tallennus epäonnistui.",
+            autosaveLoaded: 'Ladattiin automaattisesti tallennettu sisältö ajalta {time}.',
+            autosaveFailed: 'Automaattitallennus epäonnistui. Tallennus pysäytetty.',
+            // VTT parsing errors
+            vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
+            vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
+        }
+    };
+
+    let currentLang = 'en'; // Default language
+
+    // --- i18n Functions ---
+    function getBrowserLanguage() {
+        const lang = navigator.language || navigator.userLanguage || 'en';
+        const primaryLang = lang.split('-')[0].toLowerCase();
+        return translations[primaryLang] ? primaryLang : 'en'; // Fallback to 'en'
+    }
+
+    function translate(key, replacements = {}) {
+        let text = translations[currentLang]?.[key] || translations.en[key] || `[${key}]`; // Fallback chain
+        for (const placeholder in replacements) {
+            text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+        }
+        return text;
+    }
+
+    function translateUI() {
+        currentLang = getBrowserLanguage();
+        htmlElement.lang = currentLang; // Set lang attribute on <html> tag
+
+        document.querySelectorAll('[data-translate-key]').forEach(element => {
+            const key = element.dataset.translateKey;
+            const translation = translate(key);
+            if (element.tagName === 'TEXTAREA' && element.placeholder) {
+                element.placeholder = translation;
+            } else if (element.tagName === 'TITLE') {
+                 document.title = translation;
+            } else {
+                element.textContent = translation;
+            }
+        });
+        // Update dynamic elements if needed (e.g., initial placeholder if not set by attribute)
+        if (!vttFileInput.files || vttFileInput.files.length === 0) {
+             const loadPrompt = document.querySelector('#originalTranscript p');
+             if (loadPrompt) loadPrompt.textContent = translate('loadFilesPrompt');
+        }
+         const editablePlaceholder = document.getElementById('editableTranscript');
+         if (editablePlaceholder) editablePlaceholder.placeholder = translate('editableTranscriptPlaceholder');
+
+    }
 
     // --- Auto-save constants and state ---
     const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
@@ -19,9 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let transcriptData = []; // Taulukko VTT-datan tallentamiseen: { start, end, text, element }
     let originalVttFilename = 'transcript.vtt'; // Store original VTT filename for default save name
     let isSyncingScroll = false; // Flag to prevent scroll event loops
+    let activeCueIndex = -1; // Track the currently highlighted cue index
 
-    // --- Load latest autosave on startup ---
-    loadLatestAutoSave();
+    // --- Initial Setup ---
+    translateUI(); // Translate UI on load
+    loadLatestAutoSave(); // Load autosave after translating
 
     // --- Tiedostojen lataus ---
 
@@ -55,13 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("VTT-tiedosto ladattu ja jäsennetty:", file.name);
                 } catch (error) {
                     console.error("VTT-tiedoston jäsennysvirhe:", error);
-                    originalTranscriptDiv.innerHTML = `<p style="color: red;">Virhe VTT-tiedoston jäsentämisessä. Tarkista muoto.</p>`;
+                    // Use translation for error message
+                    originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
                     editableTranscriptTextarea.value = "";
                 }
             };
             reader.onerror = (e) => {
                 console.error("Virhe tiedoston lukemisessa:", e);
-                originalTranscriptDiv.innerHTML = `<p style="color: red;">Virhe VTT-tiedoston lukemisessa.</p>`;
+                 // Use translation for error message
+                originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttReadError')}</p>`;
                 editableTranscriptTextarea.value = "";
             };
             reader.readAsText(file);
@@ -81,7 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
             seconds += parseFloat(parts[0]) * 60;
             seconds += parseFloat(parts[1].replace(',', '.'));
         } else {
-            throw new Error(`Virheellinen aikamuoto: ${timeString}`);
+            // Use translation for error message
+            throw new Error(translate('vttInvalidTimeFormat', { timeString }));
         }
         return seconds;
     }
@@ -118,7 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     cues.push(currentCue);
 
                 } catch (error) {
-                     console.error(`Virhe rivin ${lineIndex + 1} aikaleiman jäsentämisessä: "${line}"`, error);
+                     // Use translation for error message
+                     console.error(translate('vttTimestampParseError', { lineNumber: lineIndex + 1, line }), error);
                      // Yritä jatkaa seuraavasta rivistä
                      lineIndex++;
                 }
@@ -138,10 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayTranscription(cues) {
         originalTranscriptDiv.innerHTML = ''; // Tyhjennä vanha sisältö
         let editableText = '';
+        let currentPos = 0; // Track character position in editable textarea
 
         cues.forEach((cue, index) => {
             // Alkuperäinen tekstitys elementteinä
-            const cueElement = document.createElement('span'); // Käytä spania tai p-elementtiä
+            const cueElement = document.createElement('span');
             cueElement.textContent = `[${formatTime(cue.start)} - ${formatTime(cue.end)}] ${cue.text}`;
             cueElement.dataset.start = cue.start;
             cueElement.dataset.end = cue.end;
@@ -151,8 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cueElement.addEventListener('click', () => {
                 if (!isNaN(cue.start)) {
                     audioPlayer.currentTime = cue.start;
-                    // Jos haluat toiston alkavan heti klikkauksesta:
-                    // audioPlayer.play();
+                    // audioPlayer.play(); // Optional: start playback on click
                 }
             });
 
@@ -160,7 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
             cue.element = cueElement; // Tallenna viittaus elementtiin
 
             // Muokattava tekstitys
-            editableText += cue.text + '\n\n'; // Lisää tyhjä rivi luettavuuden vuoksi
+            const textToAdd = cue.text + '\n\n';
+            editableText += textToAdd;
+            cue.editableStart = currentPos; // Store start index
+            cue.editableEnd = currentPos + cue.text.length; // Store end index (before newlines)
+            currentPos += textToAdd.length; // Update position for next cue
         });
 
         editableTranscriptTextarea.value = editableText.trim(); // Poista lopun tyhjä rivi
@@ -168,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset scroll positions when loading new content
         originalTranscriptDiv.scrollTop = 0;
         editableTranscriptTextarea.scrollTop = 0;
+        activeCueIndex = -1; // Reset active cue tracking
 
         // Start auto-saving after displaying new content
         lastAutoSavedContent = editableTranscriptTextarea.value; // Initialize for auto-save check
@@ -187,28 +309,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTime = audioPlayer.currentTime;
         currentTimeSpan.textContent = currentTime.toFixed(2); // Näytä aika
 
-        let activeCueFound = false;
+        let newActiveCueIndex = -1;
 
-        // Poista korostus kaikilta ensin
-        transcriptData.forEach(cue => {
-            if (cue.element) { // Varmista, että elementti on olemassa
-                 cue.element.classList.remove('highlight');
-            }
-        });
-
-        // Etsi ja korosta aktiivinen cue
+        // Etsi aktiivinen cue
         for (let i = 0; i < transcriptData.length; i++) {
             const cue = transcriptData[i];
             if (currentTime >= cue.start && currentTime < cue.end) {
-                if (cue.element) {
-                    cue.element.classList.add('highlight');
-                    // Vieritä korostettu elementti näkyviin (jos halutaan)
-                    // Käytä 'nearest' välttääksesi turhaa vieritystä, jos jo näkyvissä
-                    cue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-                }
-                activeCueFound = true;
+                newActiveCueIndex = i;
                 break; // Löydetty, ei tarvitse etsiä enempää
             }
+        }
+
+        // Päivitä korostus vain, jos aktiivinen cue muuttui
+        if (newActiveCueIndex !== activeCueIndex) {
+            // Poista vanha korostus
+            if (activeCueIndex !== -1 && transcriptData[activeCueIndex]?.element) {
+                transcriptData[activeCueIndex].element.classList.remove('highlight');
+            }
+
+            // Lisää uusi korostus ja vieritä/valitse
+            if (newActiveCueIndex !== -1) {
+                const activeCue = transcriptData[newActiveCueIndex];
+                if (activeCue.element) {
+                    activeCue.element.classList.add('highlight');
+                    // Vieritä korostettu elementti näkyviin alkuperäisessä transkriptiossa
+                    activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+                // Valitse vastaava teksti muokattavassa kentässä
+                if (typeof activeCue.editableStart === 'number' && typeof activeCue.editableEnd === 'number') {
+                    // editableTranscriptTextarea.focus(); // Ensure textarea has focus for selection visibility
+                    editableTranscriptTextarea.setSelectionRange(activeCue.editableStart, activeCue.editableEnd);
+                     // Scroll editor to selection (setSelectionRange often does this, but ensure visibility)
+                    const textLength = editableTranscriptTextarea.value.length;
+                    if (textLength > 0) {
+                        const approxScroll = (activeCue.editableStart / textLength) * editableTranscriptTextarea.scrollHeight;
+                        // Simple scroll, might need refinement for perfect positioning
+                        editableTranscriptTextarea.scrollTop = approxScroll - (editableTranscriptTextarea.clientHeight / 3);
+                    }
+
+                }
+            } else {
+                 // Jos mikään cue ei ole aktiivinen, poista valinta editorista
+                 // Check if textarea currently has focus to avoid stealing focus unnecessarily
+                 if (document.activeElement === editableTranscriptTextarea) {
+                    const currentSelectionStart = editableTranscriptTextarea.selectionStart;
+                    const currentSelectionEnd = editableTranscriptTextarea.selectionEnd;
+                    // Only clear selection if something related to cues was selected
+                    const previousCue = transcriptData[activeCueIndex];
+                     if (previousCue && currentSelectionStart === previousCue.editableStart && currentSelectionEnd === previousCue.editableEnd) {
+                         editableTranscriptTextarea.setSelectionRange(currentSelectionStart, currentSelectionStart); // Collapse selection
+                     }
+                 }
+            }
+
+            activeCueIndex = newActiveCueIndex; // Päivitä aktiivisen cuen indeksi
         }
     });
 
@@ -220,22 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
      // Lisää virheenkäsittely audioPlayerille
     audioPlayer.addEventListener('error', (e) => {
         console.error("Virhe äänitiedoston toistossa:", e);
-        let errorMessage = "Tuntematon äänivirhe.";
-        switch (audioPlayer.error.code) {
-            case MediaError.MEDIA_ERR_ABORTED:
-                errorMessage = 'Äänen toisto keskeytettiin.';
-                break;
-            case MediaError.MEDIA_ERR_NETWORK:
-                errorMessage = 'Verkkovirhe esti äänen lataamisen.';
-                break;
-            case MediaError.MEDIA_ERR_DECODE:
-                errorMessage = 'Ääntä ei voitu purkaa (tiedosto voi olla vioittunut tai selain ei tue muotoa).';
-                break;
-            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                errorMessage = 'Äänimuotoa ei tueta.';
-                break;
+        let errorKey = "audioErrorUnknown"; // Default error key
+        if (audioPlayer.error) {
+            switch (audioPlayer.error.code) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                    errorKey = 'audioErrorAborted';
+                    break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                    errorKey = 'audioErrorNetwork';
+                    break;
+                case MediaError.MEDIA_ERR_DECODE:
+                    errorKey = 'audioErrorDecode';
+                    break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorKey = 'audioErrorNotSupported';
+                    break;
+            }
         }
-         originalTranscriptDiv.innerHTML = `<p style="color: red;">Äänivirhe: ${errorMessage}</p>`;
+        // Use translation for error message
+        const errorMessage = translate(errorKey);
+        originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('audioErrorGeneric')}${errorMessage}</p>`;
     });
 
     // --- Muokatun tekstityksen tallennus ---
@@ -245,7 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt'; // Use input value or default
 
         if (!modifiedText) {
-            saveStatus.textContent = 'Ei tallennettavaa tekstiä.';
+            // Use translation
+            saveStatus.textContent = translate('saveNoText');
             saveStatus.style.color = 'red';
             return;
         }
@@ -262,7 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(link); // Clean up
             URL.revokeObjectURL(url); // Free up memory
 
-            saveStatus.textContent = `Tiedosto "${filename}" tallennettu.`;
+            // Use translation
+            saveStatus.textContent = translate('saveSuccess', { filename });
             saveStatus.style.color = 'green';
             // Clear status after a few seconds
             setTimeout(() => { saveStatus.textContent = ''; }, 5000);
@@ -274,7 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Tallennusvirhe:", error);
-            saveStatus.textContent = 'Tallennus epäonnistui.';
+            // Use translation
+            saveStatus.textContent = translate('saveError');
             saveStatus.style.color = 'red';
         }
     });
@@ -311,7 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Autosave failed:", error);
             // Optionally, display a message to the user or stop auto-saving
             stopAutoSave();
-            saveStatus.textContent = 'Autosave failed. Saving stopped.';
+            // Use translation
+            saveStatus.textContent = translate('autosaveFailed');
             saveStatus.style.color = 'red';
         }
     }
@@ -354,11 +516,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     editableTranscriptTextarea.value = savedText;
                     lastAutoSavedContent = savedText; // Initialize last saved content
                     console.log("Loaded latest autosave:", latestKey);
-                    saveStatus.textContent = `Loaded content autosaved at ${new Date(parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''))).toLocaleTimeString()}.`;
+                    const timestamp = parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''));
+                    const timeString = new Date(timestamp).toLocaleTimeString(currentLang); // Use current lang for time format
+                    // Use translation
+                    saveStatus.textContent = translate('autosaveLoaded', { time: timeString });
                     saveStatus.style.color = 'blue';
                     // Clear message after a while
                     setTimeout(() => {
-                        if (saveStatus.textContent.startsWith('Loaded content')) {
+                        // Check if the message is still the autosave loaded message before clearing
+                        const expectedStart = translate('autosaveLoaded', { time: '' }).split('{time}')[0];
+                        if (saveStatus.textContent.startsWith(expectedStart)) {
                              saveStatus.textContent = '';
                         }
                     }, 7000);
