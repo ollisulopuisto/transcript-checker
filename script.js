@@ -579,8 +579,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof activeCue.editableStart === 'number' && typeof activeCue.editableEnd === 'number') {
                     // editableTranscriptTextarea.focus(); // Focusing might steal focus unexpectedly, test if needed
                     editableTranscriptTextarea.setSelectionRange(activeCue.editableStart, activeCue.editableEnd);
-                    // The container scroll triggered by timestampPairDiv.scrollIntoView should
-                    // ideally bring the selected text area into view as well.
+                    
+                    // Ensure the selected text in the textarea is visible
+                    // Calculate the line height and approximate position
+                    const textBeforeCursor = editableTranscriptTextarea.value.substring(0, activeCue.editableStart);
+                    const lineHeight = parseFloat(window.getComputedStyle(editableTranscriptTextarea).lineHeight) || 18;
+                    const linesBeforeCursor = textBeforeCursor.split('\n').length - 1;
+                    
+                    // Calculate position and scroll the textarea to show selected text
+                    const approximateScrollPosition = linesBeforeCursor * lineHeight;
+                    editableTranscriptTextarea.scrollTop = approximateScrollPosition - (editableTranscriptTextarea.clientHeight / 3);
                 }
             } else {
                  // Jos mikään cue ei ole aktiivinen, poista valinta editorista
