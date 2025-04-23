@@ -256,6 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // clearAutoSaves();
         saveStatus.textContent = ''; // Clear any previous save status
         saveFilenameInput.value = 'modified_transcript.txt'; // Reset filename
+
+        // *** ADDED: Reset file input values ***
+        audioFileInput.value = null;
+        vttFileInput.value = null;
+        console.log("Reset file input values.");
+
         // Do NOT call checkFilesLoaded here, as it would immediately hide the inputs again
     });
 
