@@ -159,12 +159,26 @@ h1, h2 {
     width: 90px; /* Fixed width for HH:MM:SS.sss */
     margin-bottom: 2px; /* Small space between start/end */
     box-sizing: border-box;
+    /* Make all timestamp inputs read-only by default */
+    pointer-events: none;
+    background-color: #f0f0f0;
+    color: #666;
+    cursor: default;
 }
 
 /* NEW: Style for invalid timestamp input */
 .timestamp-editor input.invalid {
     border-color: red;
     background-color: #ffecec;
+}
+
+/* NEW: Make inputs in the highlighted timestamp pair editable */
+.timestamp-pair.highlight input {
+    pointer-events: auto;
+    background-color: #fff;
+    color: #000;
+    cursor: text;
+    border-color: #4CAF50; /* Green border to indicate editable */
 }
 
 #originalTranscript p,
