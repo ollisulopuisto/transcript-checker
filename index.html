@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Litteroinnin Tarkistustyökalu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Litteroinnin Tarkistustyökalu</h1>
+
+    <div class="controls">
+        <label for="audioFile">1. Valitse äänitiedosto:</label>
+        <input type="file" id="audioFile" accept="audio/*">
+
+        <label for="vttFile">2. Valitse VTT-tekstitystiedosto:</label>
+        <input type="file" id="vttFile" accept=".vtt">
+    </div>
+
+    <div class="player-section">
+        <h2>Äänitiedosto</h2>
+        <audio id="audioPlayer" controls></audio>
+        <p>Nykyinen aika: <span id="currentTime">0.00</span>s</p>
+    </div>
+
+    <div class="transcription-section">
+        <div class="column">
+            <h2>Alkuperäinen Tekstitys (VTT)</h2>
+            <div id="originalTranscript" class="transcript-box">
+                <p>Lataa ensin äänitiedosto ja VTT-tiedosto.</p>
+            </div>
+        </div>
+        <div class="column">
+            <h2>Muokattava Tekstitys (korjaa tähän)</h2>
+            <textarea id="editableTranscript" class="transcript-box" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
+            <p><small>Huom: Muokkaukset tässä eivät tallennu automaattisesti.</small></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

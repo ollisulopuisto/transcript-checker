@@ -1,0 +1,96 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+
+h1, h2 {
+    color: #333;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+}
+
+.controls {
+    margin-bottom: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.controls label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.controls input[type="file"] {
+    display: block;
+    margin-bottom: 15px;
+}
+
+.player-section {
+    margin-bottom: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#audioPlayer {
+    width: 100%;
+}
+
+.transcription-section {
+    display: flex;
+    gap: 20px; /* Väli sarakkeiden välillä */
+    flex-wrap: wrap; /* Salli rivitys pienillä näytöillä */
+}
+
+.column {
+    flex: 1; /* Jakaa tilan tasan */
+    min-width: 300px; /* Minimileveys ennen rivitystä */
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.transcript-box {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: #fff;
+    white-space: pre-wrap; /* Säilyttää rivinvaihdot */
+    font-size: 0.9em;
+}
+
+#originalTranscript p,
+#originalTranscript span { /* Käytetään span-elementtejä VTT-riveille */
+    margin-bottom: 8px;
+    padding: 4px;
+    border-radius: 3px;
+    display: block; /* Varmistaa, että highlight peittää koko rivin */
+    transition: background-color 0.2s ease-in-out; /* Pehmeä siirtymä */
+}
+
+#originalTranscript .highlight {
+    background-color: #f0e68c; /* Esim. vaalea keltainen korostus */
+    font-weight: bold;
+}
+
+#editableTranscript {
+    width: calc(100% - 22px); /* Huomioi padding ja border */
+    height: 400px;
+    font-family: inherit;
+    font-size: 0.9em;
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-sizing: border-box; /* Padding ja border sisältyvät leveyteen/korkeuteen */
+}
+
+small {
+    color: #555;
+}
