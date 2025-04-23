@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const LANGUAGE_STORAGE_KEY = 'transcriptCheckerLang'; // Added
     const timestampEditorDiv = document.getElementById('timestampEditor'); // Added
     const editableColumnContentDiv = document.getElementById('editableColumnContent'); // Added
+    const mainContentDiv = document.getElementById('mainContent'); // Added for hiding/showing
+    const initialLoadMessageDiv = document.getElementById('initialLoadMessage'); // Added
 
     // --- Needed variables for focused segment editing ---
     const previousSegmentsDiv = document.getElementById('previousSegments');
@@ -177,28 +179,48 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'fi'; // Load saved lang or default to 'fi'
     translateUI(); // Translate UI on load using the determined language
     loadLatestAutoSave(); // Load autosave after translating
+    saveButton.disabled = true; // Disable save button initially
 
     // --- File Loading Visibility Toggle ---
     function checkFilesLoaded() {
         if (audioFileLoaded && vttFileLoaded) {
             fileInputContainer.classList.add('hidden');
             toggleFileInputsBtn.style.display = 'block'; // Show the button
+            mainContentDiv.classList.remove('hidden'); // Show main content
+            initialLoadMessageDiv.classList.add('hidden'); // Hide initial message
+            saveButton.disabled = false; // Enable save button
+        } else {
+             mainContentDiv.classList.add('hidden'); // Ensure main content is hidden if files not loaded
+             initialLoadMessageDiv.classList.remove('hidden'); // Show initial message
+             saveButton.disabled = true; // Keep save button disabled
         }
     }
 
     toggleFileInputsBtn.addEventListener('click', () => {
         fileInputContainer.classList.remove('hidden');
         toggleFileInputsBtn.style.display = 'none'; // Hide the button again
+        mainContentDiv.classList.add('hidden'); // Hide main content when loading new files
+        initialLoadMessageDiv.classList.remove('hidden'); // Show initial message again
         // Reset loaded status if user wants to load new files
         audioFileLoaded = false;
         vttFileLoaded = false;
-        // Optionally clear existing content or prompt user
-        // audioPlayer.src = '';
-        // originalTranscriptDiv.innerHTML = `<p data-translate-key="loadFilesPrompt">${translate('loadFilesPrompt')}</p>`;
-        // editableTranscriptTextarea.value = '';
-        // transcriptData = [];
-        // stopAutoSave();
+        saveButton.disabled = true; // Disable save button
+
+        // Clear existing content
+        audioPlayer.src = '';
+        originalTranscriptDiv.innerHTML = ''; // Clear original transcript
+        timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
+        previousSegmentsDiv.innerHTML = ''; // Clear context
+        nextSegmentsDiv.innerHTML = '';
+        editableTranscriptTextarea.value = ''; // Clear editor
+        transcriptData = [];
+        currentEditingIndex = -1;
+        activeCueIndex = -1;
+        stopAutoSave();
+        // Optionally clear autosaves if desired, or keep them
         // clearAutoSaves();
+        saveStatus.textContent = ''; // Clear any previous save status
+        saveFilenameInput.value = 'modified_transcript.txt'; // Reset filename
     });
 
     // --- Language Selection --- Added
@@ -227,6 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Äänitiedosto ladattu:", file.name);
             audioFileLoaded = true; // Mark as loaded
             checkFilesLoaded(); // Check if both are loaded
+        } else {
+            audioFileLoaded = false; // Mark as not loaded if selection is cancelled
+            checkFilesLoaded();
         }
     });
 
@@ -256,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
                     editableTranscriptTextarea.value = "";
                     vttFileLoaded = false; // Mark as not loaded on error
+                    checkFilesLoaded(); // Update UI state
                 }
             };
             reader.onerror = (e) => {
@@ -264,8 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttReadError')}</p>`;
                 editableTranscriptTextarea.value = "";
                 vttFileLoaded = false; // Mark as not loaded on error
+                checkFilesLoaded(); // Update UI state
             };
             reader.readAsText(file);
+        } else {
+             vttFileLoaded = false; // Mark as not loaded if selection is cancelled
+             checkFilesLoaded();
         }
     });
 
@@ -363,12 +393,12 @@ document.addEventListener('DOMContentLoaded', () => {
         timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
         previousSegmentsDiv.innerHTML = ''; // Clear previous segments
         nextSegmentsDiv.innerHTML = ''; // Clear next segments
-        let editableText = '';
-        let currentPos = 0; // Track character position in editable textarea
+        // editableText variable is no longer needed as we populate the focused view directly
 
         cues.forEach((cue, index) => {
             // Alkuperäinen tekstitys elementteinä
             const cueElement = document.createElement('span');
+            // Display only text in original view for cleaner look? Or keep timestamps? Keeping for now.
             cueElement.textContent = `[${formatTime(cue.start)} - ${formatTime(cue.end)}] ${cue.text}`;
             cueElement.dataset.start = cue.start;
             cueElement.dataset.end = cue.end;
@@ -380,18 +410,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     audioPlayer.currentTime = cue.start;
                     // Update the focused view to this segment
                     updateFocusedSegmentView(index);
+                    // Ensure the clicked element is scrolled into view if needed
+                    cueElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                 }
             });
 
             originalTranscriptDiv.appendChild(cueElement);
             cue.element = cueElement; // Tallenna viittaus elementtiin
-
-            // Muokattava tekstitys (we'll handle this with the focused view now)
-            const textToAdd = cue.text + '\n\n';
-            editableText += textToAdd;
-            cue.editableStart = currentPos; // Store start index
-            cue.editableEnd = currentPos + cue.text.length; // Store end index (before newlines)
-            currentPos += textToAdd.length; // Update position for next cue
 
             // Create timestamp inputs for the editor column
             const tsPairDiv = document.createElement('div');
@@ -423,12 +448,15 @@ document.addEventListener('DOMContentLoaded', () => {
             cue.endTimestampInput = endInput;
         });
 
-        // Initialize with no focused segment
-        currentEditingIndex = -1;
-        
-        // If we have entries, show the first one
+        // Initialize with the first segment focused if available
+        currentEditingIndex = -1; // Reset before updating
         if (cues.length > 0) {
             updateFocusedSegmentView(0);
+        } else {
+            // Handle empty VTT file case
+            editableTranscriptTextarea.value = '';
+            previousSegmentsDiv.innerHTML = '';
+            nextSegmentsDiv.innerHTML = '';
         }
 
         // Reset scroll positions when loading new content
@@ -733,8 +761,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Muokatun tekstityksen tallennus ---
 
     saveButton.addEventListener('click', () => {
-        const modifiedTextRaw = editableTranscriptTextarea.value;
-        const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt'; // Use input value or default
+        // Check if button is disabled (shouldn't happen via UI, but good practice)
+        if (saveButton.disabled) {
+            console.warn("Save button clicked while disabled.");
+            return;
+        }
+
+        // Save current focused segment's text before proceeding
+        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
+             const currentText = editableTranscriptTextarea.value.trim();
+             if (currentText !== transcriptData[currentEditingIndex].text) {
+                 transcriptData[currentEditingIndex].text = currentText;
+                 // No need to update original display text here, focus is on saving data
+             }
+        }
+
+
+        // const modifiedTextRaw = editableTranscriptTextarea.value; // We get text block by block now
+        const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt';
         const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
 
         // Check for invalid timestamp inputs before saving formats that use them
@@ -748,39 +792,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (!modifiedTextRaw && selectedFormat !== 'vtt') { // Allow saving empty VTT? Maybe not useful.
-            saveStatus.textContent = translate('saveNoText');
-            saveStatus.style.color = 'red';
-            return;
+        // Check if there's data to save
+        if (transcriptData.length === 0) {
+             saveStatus.textContent = translate('saveNoText');
+             saveStatus.style.color = 'red';
+             return;
         }
+
 
         let outputContent = '';
         let blobType = 'text/plain;charset=utf-8';
 
         try {
             if (selectedFormat === 'txt_plain') {
-                outputContent = modifiedTextRaw;
+                // Join all text blocks for plain text output
+                outputContent = transcriptData.map(cue => cue.text.trim()).join('\n\n');
                 blobType = 'text/plain;charset=utf-8';
             } else {
-                // VTT and TXT_TS require mapping edited text back to cues
-                const editedBlocks = modifiedTextRaw.split('\n\n');
+                // VTT and TXT_TS use the transcriptData directly
 
-                // *** Crucial Check ***
-                if (editedBlocks.length !== transcriptData.length) {
-                    saveStatus.textContent = translate('saveBlockMismatchError');
-                    saveStatus.style.color = 'red';
-                    console.error(`Block count mismatch: ${editedBlocks.length} edited vs ${transcriptData.length} original cues.`);
-                    return;
-                }
+                // *** Block mismatch check is no longer needed as we use transcriptData ***
 
                 if (selectedFormat === 'vtt') {
                     blobType = 'text/vtt';
                     let vttLines = ["WEBVTT", ""];
                     transcriptData.forEach((cue, index) => {
-                        // *** Use potentially updated start/end times from transcriptData ***
                         const start = formatVttTime(cue.start);
                         const end = formatVttTime(cue.end);
-                        const text = editedBlocks[index].trim(); // Use trimmed edited text
+                        const text = cue.text.trim(); // Use text directly from data
                         vttLines.push(`${start} --> ${end}`);
                         vttLines.push(text);
                         vttLines.push(""); // Add empty line between cues
@@ -789,10 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (selectedFormat === 'txt_ts') {
                     blobType = 'text/plain;charset=utf-8';
                     const textLines = transcriptData.map((cue, index) => {
-                         // *** Use potentially updated start/end times from transcriptData ***
                         const start = formatVttTime(cue.start);
                         const end = formatVttTime(cue.end);
-                        const text = editedBlocks[index].trim();
+                        const text = cue.text.trim(); // Use text directly from data
                         return `[${start} - ${end}] ${text}`;
                     });
                     outputContent = textLines.join('\n\n'); // Separate blocks with double newline
@@ -825,9 +863,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Auto-save Functions ---
 
     function autoSaveTranscript() {
-        const currentText = editableTranscriptTextarea.value;
-        if (currentText === lastAutoSavedContent || !currentText.trim()) {
-            // Don't save if content hasn't changed or is empty/whitespace
+        // Only save if main content is visible (files loaded)
+        if (mainContentDiv.classList.contains('hidden')) {
+            return;
+        }
+
+        // Save the currently edited segment text back to transcriptData before saving
+        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
+             const currentTextInEditor = editableTranscriptTextarea.value.trim();
+             if (currentTextInEditor !== transcriptData[currentEditingIndex].text) {
+                 transcriptData[currentEditingIndex].text = currentTextInEditor;
+                 console.log(`Autosave updated cue ${currentEditingIndex} text.`);
+                 // No need to update lastAutoSavedContent based on single segment change,
+                 // we'll compare the whole structure below.
+             }
+        }
+
+        // Serialize the relevant data (timestamps and text) for comparison and saving
+        const currentState = JSON.stringify(transcriptData.map(cue => ({
+            start: cue.start,
+            end: cue.end,
+            text: cue.text
+        })));
+
+
+        if (currentState === lastAutoSavedContent || transcriptData.length === 0) {
+            // Don't save if content hasn't changed or is empty
             return;
         }
 
@@ -844,10 +905,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Removed oldest autosave:", oldestKey);
             }
 
-            // Save current version
+            // Save current version (serialized data)
             const newKey = AUTOSAVE_KEY_PREFIX + timestamp;
-            localStorage.setItem(newKey, currentText);
-            lastAutoSavedContent = currentText; // Update last saved content
+            localStorage.setItem(newKey, currentState);
+            lastAutoSavedContent = currentState; // Update last saved content
             console.log("Autosaved:", newKey);
 
         } catch (error) {
@@ -893,31 +954,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (keys.length > 0) {
                 const latestKey = keys[keys.length - 1]; // Get the last (latest) key
-                const savedText = localStorage.getItem(latestKey);
-                if (savedText) {
-                    editableTranscriptTextarea.value = savedText;
-                    lastAutoSavedContent = savedText; // Initialize last saved content
-                    console.log("Loaded latest autosave:", latestKey);
-                    const timestamp = parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''));
-                    const timeString = new Date(timestamp).toLocaleTimeString(currentLang); // Use current lang for time format
-                    // Use translation
-                    saveStatus.textContent = translate('autosaveLoaded', { time: timeString });
-                    saveStatus.style.color = 'blue';
-                    // Clear message after a while
-                    setTimeout(() => {
-                        // Check if the message is still the autosave loaded message before clearing
-                        const expectedStart = translate('autosaveLoaded', { time: '' }).split('{time}')[0];
-                        if (saveStatus.textContent.startsWith(expectedStart)) {
-                             saveStatus.textContent = '';
+                const savedStateJSON = localStorage.getItem(latestKey);
+                if (savedStateJSON) {
+                    const savedData = JSON.parse(savedStateJSON);
+
+                    // Check if the loaded data seems valid (basic check)
+                    if (Array.isArray(savedData) && savedData.length > 0) {
+
+                        // *** Important: Only load autosave if NO files are currently loaded ***
+                        if (!audioFileLoaded && !vttFileLoaded) {
+                            console.log("Attempting to restore from autosave:", latestKey);
+                            // We can't fully restore without the original VTT structure (elements, etc.)
+                            // and audio file. This autosave is primarily for the *text content* and *timestamps*.
+                            // A more robust solution would involve storing original filenames too.
+                            // For now, we just show a message indicating data exists.
+
+                            // Instead of loading into the editor, show a persistent message.
+                            const timestamp = parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''));
+                            const timeString = new Date(timestamp).toLocaleTimeString(currentLang);
+                            saveStatus.textContent = translate('autosaveLoaded', { time: timeString }) + " Load files to continue editing.";
+                            saveStatus.style.color = 'blue';
+                            // Don't clear this message automatically
+
+                            // We store the loaded state to potentially apply it *after* files are loaded,
+                            // but this adds complexity. Simpler: user loads files, then autosave applies if timestamps match.
+                            // Let's stick to just the notification for now.
+                            lastAutoSavedContent = savedStateJSON; // Keep track of the loaded state
+
+                        } else {
+                             console.log("Files already loaded, skipping autosave restore to UI.");
+                             // If files ARE loaded, we could potentially try to merge the autosaved data
+                             // if the number of cues matches, but this is risky.
+                             // Let's assume the user wants the freshly loaded file content.
+                             lastAutoSavedContent = savedStateJSON; // Still update this for comparison later
                         }
-                    }, 7000);
-                    // Start auto-saving immediately if content was recovered
-                    startAutoSave();
+
+                    } else {
+                         console.log("Autosave data is empty or invalid, skipping restore.");
+                    }
                 }
             }
         } catch (error) {
-            console.error("Failed to load latest autosave:", error);
+            console.error("Failed to load or parse latest autosave:", error);
+            // Clear potentially corrupted autosave?
+            // localStorage.removeItem(latestKey);
         }
+        // Start autosave interval regardless, it will check if content is loaded later
+        startAutoSave();
     }
 
     // Optional: Stop auto-save when navigating away

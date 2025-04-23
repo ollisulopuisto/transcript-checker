@@ -1,238 +1,328 @@
+:root {
+    --bg-color: #f8f9fa; /* Lighter gray background */
+    --container-bg: #ffffff;
+    --text-color: #212529; /* Darker text for better contrast */
+    --secondary-text-color: #6c757d; /* Gray for less important text */
+    --border-color: #dee2e6; /* Lighter border */
+    --accent-color: #007bff; /* Blue accent */
+    --accent-hover-color: #0056b3;
+    --highlight-bg: #cfe2ff; /* Light blue highlight */
+    --highlight-text: #004085;
+    --timestamp-bg: #e9ecef; /* Slightly darker bg for timestamp editor */
+    --invalid-border: #dc3545; /* Red for invalid */
+    --invalid-bg: #f8d7da;
+    --invalid-text: #721c24;
+    --success-color: #28a745; /* Green for success */
+    --info-color: #17a2b8; /* Info blue */
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.075);
+}
+
 body {
-    font-family: sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* Modern system font stack */
     line-height: 1.6;
     margin: 20px;
-    background-color: #f4f4f4;
+    background-color: var(--bg-color);
+    color: var(--text-color);
 }
 
 h1, h2 {
-    color: #333;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 5px;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px; /* Increased padding */
+    margin-bottom: 16px; /* Increased margin */
 }
 
-.controls {
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+/* General container styling */
+.controls, .player-section, .column, .save-section {
     margin-bottom: 20px;
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: var(--container-bg);
+    padding: 20px; /* Increased padding */
+    border-radius: 8px; /* Softer corners */
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+/* Language Selector */
+#languageSelector {
+    background-color: var(--timestamp-bg); /* Use timestamp bg */
+    border: 1px solid var(--border-color);
+    padding: 10px 15px;
+}
+
+#languageSelector button {
+    padding: 5px 10px;
+    margin-left: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--container-bg);
+    cursor: pointer;
+    border-radius: 4px;
+}
+#languageSelector button:hover {
+    background-color: #f1f1f1;
+}
+
+
+/* Bottom Controls Container */
+.bottom-controls-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.controls, .save-section {
+    flex: 1; /* Make them share space */
+    min-width: 320px; /* Minimum width before wrapping */
+    margin-bottom: 0; /* Remove bottom margin as it's handled by the container gap */
 }
 
 .controls label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 8px; /* Increased spacing */
+    font-weight: 600; /* Slightly bolder */
 }
 
 .controls input[type="file"] {
     display: block;
     margin-bottom: 15px;
+    /* Consider custom styling for file inputs if desired */
 }
 
-/* Style to hide the file input container */
-#fileInputContainer.hidden {
-    display: none;
+/* Style to hide elements */
+.hidden {
+    display: none !important; /* Use important to ensure override */
 }
 
 /* Style for the toggle button */
 #toggleFileInputsBtn {
     margin-top: 10px;
-    padding: 8px 12px;
+    padding: 10px 15px; /* Larger button */
     cursor: pointer;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
 }
 
+#toggleFileInputsBtn:hover {
+    background-color: var(--accent-hover-color);
+}
+
+/* Player Section */
 .player-section {
-    margin-bottom: 20px;
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    /* Styles already defined in general container */
 }
 
 /* Enhanced audio player styling */
 #audioPlayer {
     width: 100%;
-    height: 40px; /* Increase height for better visibility */
+    height: 45px; /* Slightly taller */
+    margin-top: 10px; /* Add some space above */
 }
 
 /* Style the audio player progress bar (works in most modern browsers) */
 #audioPlayer::-webkit-media-controls-timeline {
-    background-color: #e1f5fe; /* Light blue background */
+    background-color: #e9ecef; /* Lighter background */
     border-radius: 25px;
-    color: #0277bd; /* Accent color for the progress indicator */
+    color: var(--accent-color); /* Accent color for the progress indicator */
 }
 
 #audioPlayer::-webkit-media-controls-play-button {
-    background-color: #f0f8ff; /* Light background for play button */
+    background-color: #f8f9fa; /* Light background for play button */
     border-radius: 50%;
+    border: 1px solid var(--border-color);
 }
 
 #audioPlayer::-webkit-media-controls-current-time-display,
 #audioPlayer::-webkit-media-controls-time-remaining-display {
-    color: #0277bd; /* Match the progress bar color */
-    font-weight: bold;
-}
-
-.transcription-section {
-    display: flex;
-    gap: 20px; /* Väli sarakkeiden välillä */
-    flex-wrap: wrap; /* Salli rivitys pienillä näytöillä */
-}
-
-/* Adjust column widths: 2/5 for original, 3/5 for editable */
-.column:first-child {
-    flex: 2; /* 2 parts for original transcript */
-}
-
-.column:nth-child(2) {
-    flex: 3; /* 3 parts for editable transcript */
-}
-
-.column {
-    min-width: 300px; /* Minimileveys ennen rivitystä */
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.transcript-box {
-    height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    background-color: #fff;
+    color: var(--accent-color); /* Match the progress bar color */
+    font-weight: 600;
     font-size: 0.9em;
 }
 
-/* NEW: Styles for the container holding timestamps and text editor */
-.editable-column-content {
-    display: flex; /* Enable flexbox for side-by-side layout */
-    gap: 10px; /* Space between timestamps and text */
-    padding: 0; /* Remove padding from container, apply to children if needed */
-    border: 1px solid #ccc; /* Keep border on the container */
-    height: 400px; /* Maintain height */
-    overflow-y: auto; /* Make the container scrollable */
-}
-
-/* NEW: Styles for the timestamp editor column */
-.timestamp-editor {
-    padding: 10px 5px 10px 10px; /* Adjust padding */
-    background-color: #f8f8f8; /* Slightly different background */
-    font-family: monospace;
-    font-size: 0.9em; /* Match textarea */
-    line-height: 1.6; /* Match textarea */
-    white-space: pre; /* Prevent wrapping */
-    overflow: hidden; /* Hide internal overflow */
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-/* NEW: Styles for individual timestamp input containers */
-.timestamp-pair {
-    margin-bottom: calc(1.6em + 1px); /* Approximate line-height + potential border/padding */
+/* Transcription Section */
+.transcription-section {
     display: flex;
-    flex-direction: column; /* Stack start/end times */
-    height: calc(2 * 1.6em + 4px); /* Approximate height for two lines of text + padding */
-    justify-content: center; /* Center vertically */
-    transition: background-color 0.2s ease-in-out; /* Smooth transition for highlight */
-    border-radius: 3px; /* Match original transcript highlight */
-    padding: 2px 0; /* Add slight vertical padding for highlight */
-    margin-left: -5px; /* Adjust position slightly for highlight */
-    padding-left: 5px; /* Adjust position slightly for highlight */
-    margin-right: -5px; /* Adjust position slightly for highlight */
-    padding-right: 5px; /* Adjust position slightly for highlight */
+    gap: 20px; /* Space between columns */
+    flex-wrap: wrap; /* Allow wrapping */
+    margin-bottom: 20px; /* Add margin below this section */
 }
 
-/* NEW: Highlight style for the active timestamp pair */
+/* Adjust column widths: slightly more balanced */
+.column:first-child {
+    flex: 3; /* More space for original */
+}
+
+.column:nth-child(2) {
+    flex: 4; /* More space for editable */
+}
+
+.column {
+    min-width: 350px; /* Increase min-width */
+    /* Styles already defined in general container */
+}
+
+.transcript-box {
+    height: 450px; /* Increased height */
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 15px; /* Increased padding */
+    background-color: var(--container-bg);
+    font-size: 0.95em; /* Slightly larger base font */
+    border-radius: 4px; /* Consistent radius */
+}
+
+/* Container holding timestamps and text editor */
+.editable-column-content {
+    display: flex;
+    gap: 15px; /* Increased gap */
+    padding: 0; /* Remove padding from container */
+    border: 1px solid var(--border-color);
+    height: 450px; /* Match transcript-box height */
+    overflow-y: auto;
+    border-radius: 4px;
+}
+
+/* Timestamp editor column */
+.timestamp-editor {
+    padding: 15px 10px 15px 15px; /* Adjust padding */
+    background-color: var(--timestamp-bg);
+    font-family: monospace;
+    font-size: 0.95em; /* Match transcript box */
+    line-height: 1.6;
+    white-space: pre;
+    overflow: hidden;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color); /* Add separator line */
+}
+
+/* Individual timestamp input containers */
+.timestamp-pair {
+    /* Keep existing layout logic, adjust spacing/highlight */
+    margin-bottom: calc(1.6em + 4px); /* Adjust based on line-height and padding */
+    display: flex;
+    flex-direction: column;
+    height: calc(2 * 1.6em + 6px); /* Adjust height */
+    justify-content: center;
+    transition: background-color 0.2s ease-in-out;
+    border-radius: 4px;
+    padding: 3px 0; /* Adjust vertical padding */
+    margin-left: -10px; /* Adjust position for highlight */
+    padding-left: 10px;
+    margin-right: -10px;
+    padding-right: 10px;
+}
+
+/* Highlight style for the active timestamp pair */
 .timestamp-pair.highlight {
-    background-color: #f0e68c; /* Match original transcript highlight */
+    background-color: var(--highlight-bg); /* Use new highlight color */
 }
 
-/* NEW: Styles for timestamp inputs */
+/* Styles for timestamp inputs */
 .timestamp-editor input {
     font-family: monospace;
-    font-size: 0.9em; /* Match parent */
-    line-height: 1.4; /* Adjust for input height */
-    border: 1px solid #ddd;
-    padding: 1px 3px;
-    width: 90px; /* Fixed width for HH:MM:SS.sss */
-    margin-bottom: 2px; /* Small space between start/end */
+    font-size: 0.95em; /* Match parent */
+    line-height: 1.4;
+    border: 1px solid var(--border-color); /* Use standard border color */
+    padding: 2px 4px; /* Slightly more padding */
+    width: 95px; /* Slightly wider */
+    margin-bottom: 3px; /* Increased space */
     box-sizing: border-box;
-    /* Make all timestamp inputs read-only by default */
-    pointer-events: none;
-    background-color: #f0f0f0;
-    color: #666;
+    pointer-events: none; /* Read-only by default */
+    background-color: #e9ecef; /* Slightly darker disabled bg */
+    color: var(--secondary-text-color);
     cursor: default;
+    border-radius: 3px;
 }
 
-/* NEW: Style for invalid timestamp input */
+/* Style for invalid timestamp input */
 .timestamp-editor input.invalid {
-    border-color: red;
-    background-color: #ffecec;
+    border-color: var(--invalid-border);
+    background-color: var(--invalid-bg);
+    color: var(--invalid-text); /* Darker red text for contrast */
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25); /* Subtle glow */
 }
 
-/* NEW: Make inputs in the highlighted timestamp pair editable */
+/* Make inputs in the highlighted timestamp pair editable */
 .timestamp-pair.highlight input {
     pointer-events: auto;
-    background-color: #fff;
-    color: #000;
+    background-color: var(--container-bg); /* White background */
+    color: var(--text-color); /* Standard text color */
     cursor: text;
-    border-color: #4CAF50; /* Green border to indicate editable */
+    border-color: var(--accent-color); /* Blue border to indicate editable */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Blue glow on focus */
 }
 
+/* Original Transcript Styling */
 #originalTranscript p,
-#originalTranscript span { /* Käytetään span-elementtejä VTT-riveille */
+#originalTranscript span {
     margin-bottom: 8px;
-    padding: 4px;
-    border-radius: 3px;
-    display: block; /* Varmistaa, että highlight peittää koko rivin */
-    transition: background-color 0.2s ease-in-out; /* Pehmeä siirtymä */
-    cursor: pointer; /* Lisää osoitin osoittamaan klikattavuutta */
+    padding: 5px 8px; /* Adjust padding */
+    border-radius: 4px;
+    display: block;
+    transition: background-color 0.2s ease-in-out;
+    cursor: pointer;
+    line-height: 1.5; /* Ensure consistent line height */
 }
 
-#originalTranscript span:hover { /* Lisää hover-efekti */
-    background-color: #eee; /* Kevyt korostus hoverilla */
+#originalTranscript span:hover {
+    background-color: #e9ecef; /* Lighter hover */
 }
 
 #originalTranscript .highlight {
-    background-color: #f0e68c; /* Esim. vaalea keltainen korostus */
-    font-weight: bold;
+    background-color: var(--highlight-bg); /* Use new highlight color */
+    color: var(--highlight-text); /* Ensure text is readable on highlight */
+    font-weight: 600; /* Slightly bolder */
 }
 
-/* ADJUSTED: Remove individual scroll/border/height from textarea */
+/* Editable Transcript Area (within context view) */
 #editableTranscript {
     font-family: inherit;
-    font-size: 1.2em; /* Increased from 0.9em to make text bigger */
-    line-height: 1.6; /* Ensure consistent line height */
-    border: none; /* Remove border */
-    padding: 15px; /* Increased padding for better readability */
-    box-sizing: border-box; /* Padding ja border sisältyvät leveyteen/korkeuteen */
-    flex-grow: 1; /* Allow textarea to take remaining space */
-    resize: none; /* Disable manual resizing */
-    white-space: pre-wrap; /* Keep wrapping */
-    background-color: #fff; /* Ensure background */
+    font-size: 1.1em; /* Slightly larger */
+    line-height: 1.6;
+    border: none;
+    padding: 15px;
+    box-sizing: border-box;
+    flex-grow: 1;
+    resize: none;
+    white-space: pre-wrap;
+    background-color: transparent; /* Inherit from parent */
+    width: 100%; /* Ensure it fills container */
+    height: 100%; /* Ensure it fills container */
+    min-height: 150px; /* Adjust min-height as needed */
+    outline: none; /* Remove default outline */
 }
 
-/* New styles for the focused segment display */
+/* Focused Segment Display */
 .transcript-context-container {
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
     overflow: hidden;
+    padding: 15px; /* Add padding to the container */
+    background-color: var(--container-bg); /* Ensure background */
 }
 
 .context-segment {
-    background-color: #f5f5f5;
-    padding: 10px 15px;
+    background-color: #f8f9fa; /* Lighter bg for context */
+    padding: 8px 12px;
     margin: 5px 0;
     border-radius: 4px;
-    color: #666;
-    font-size: 1em;
-    /* Add max-height to limit the size of context segments */
-    max-height: 80px; /* Limit height of context segments */
-    overflow-y: auto; /* Add scroll if content exceeds max-height */
+    color: var(--secondary-text-color);
+    font-size: 0.9em; /* Smaller context text */
+    max-height: 70px; /* Adjust max height */
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    line-height: 1.5;
 }
 
 .previous-segments, .next-segments {
@@ -241,99 +331,129 @@ h1, h2 {
 
 .current-segment {
     margin: 10px 0;
-    border: 2px solid #4CAF50;
+    border: 2px solid var(--accent-color); /* Use accent color for border */
     border-radius: 4px;
     padding: 0;
-    background-color: #fff;
+    background-color: var(--container-bg);
     flex-grow: 1;
-    /* Increase the space for the editor */
-    min-height: 240px; /* Increase minimum height */
+    display: flex; /* Use flex to make textarea fill */
+    min-height: 200px; /* Adjust min height */
 }
 
 .current-segment textarea {
-    width: 100%;
-    height: 100%;
-    min-height: 240px; /* Ensure a minimum height for the editable area - increased */
-    border: none;
-    outline: none; /* Remove focus outline, we have the green border already */
-    padding: 15px;
-    background-color: #ffffff;
+    /* Styles moved to #editableTranscript */
 }
 
-/* Style for timestamp indicators in context segments */
+/* Timestamp indicators in context segments */
 .timestamp-indicator {
-    font-size: 0.8em;
-    color: #888;
-    margin-bottom: 5px;
+    font-size: 0.85em;
+    color: #495057; /* Darker gray */
+    margin-bottom: 4px;
     font-family: monospace;
+    cursor: pointer; /* Indicate clickable */
+}
+.timestamp-indicator:hover {
+    color: var(--accent-color);
 }
 
-/* Style for the selected text in the editable textarea */
+/* Selection style in editable textarea */
 #editableTranscript::selection {
-    background-color: #f0e68c; /* Same highlight color as the original transcript */
-    color: #333; /* Ensure text remains readable */
+    background-color: var(--highlight-bg);
+    color: var(--highlight-text);
 }
 
 small {
-    color: #555;
+    color: var(--secondary-text-color);
+    font-size: 0.85em;
 }
 
 #currentTime {
-    background-color: #eee;
-    padding: 2px 6px;
-    border-radius: 3px;
+    background-color: #e9ecef;
+    padding: 3px 8px;
+    border-radius: 4px;
     font-family: monospace;
-    font-size: 0.95em;
-    cursor: text; /* Indicate it's selectable text */
-    user-select: all; /* Make double-click select all */
-    -webkit-user-select: all; /* Safari */
-    -moz-user-select: all; /* Firefox */
-    -ms-user-select: all; /* IE/Edge */
+    font-size: 1em; /* Match surrounding text */
+    cursor: text;
+    user-select: all;
+    -webkit-user-select: all;
+    -moz-user-select: all;
+    -ms-user-select: all;
+    border: 1px solid var(--border-color);
 }
 
-/* New styles for save section */
+/* Save Section */
 .save-section {
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    padding: 15px;
-    margin-top: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    /* Styles already defined in general container */
 }
 
 .save-section label {
-    font-weight: bold;
+    font-weight: 600;
 }
 
 #saveFilename {
     display: block;
-    width: calc(100% - 20px);
+    width: calc(100% - 22px); /* Account for padding and border */
     margin: 8px 0 15px;
     padding: 8px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
+    font-size: 0.95em;
 }
 
 #saveFormatOptions {
-    background-color: #fff;
+    background-color: #f8f9fa; /* Lighter bg for options */
     border-radius: 4px;
-    padding: 10px;
-    margin: 10px 0;
+    padding: 15px;
+    margin: 15px 0;
+    border: 1px solid var(--border-color);
+}
+
+#saveFormatOptions label {
+    font-weight: normal; /* Normal weight for radio labels */
+    margin-left: 5px;
 }
 
 #saveButton {
     display: block;
     width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
+    padding: 12px; /* Larger button */
+    background-color: var(--success-color); /* Green for save */
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    margin-top: 10px;
+    font-size: 1.1em; /* Larger font */
+    margin-top: 15px;
 }
 
 #saveButton:hover {
-    background-color: #45a049;
+    background-color: #218838; /* Darker green */
+}
+
+#saveButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Status Message Styling */
+#saveStatus {
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 5px;
+    border-radius: 3px;
+}
+#saveStatus[style*="color: green"] {
+    color: var(--success-color);
+    background-color: #d4edda; /* Light green background */
+    border: 1px solid #c3e6cb;
+}
+#saveStatus[style*="color: red"] {
+    color: var(--invalid-text);
+    background-color: var(--invalid-bg);
+    border: 1px solid var(--invalid-border);
+}
+#saveStatus[style*="color: blue"] {
+    color: #004085; /* Dark blue text */
+    background-color: var(--highlight-bg); /* Light blue background */
+    border: 1px solid #b8daff;
 }
