@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioFileLoaded = false; // Added state tracker
     let vttFileLoaded = false;   // Added state tracker
     let audioBaseFilename = 'transcript'; // Added: Store base name of audio file
+    let currentAudioObjectURL = null; // Added: Store the current object URL
 
     // --- i18n Functions ---
     function getBrowserLanguage() {
@@ -232,7 +233,16 @@ document.addEventListener('DOMContentLoaded', () => {
         saveButton.disabled = true; // Disable save button
 
         // Clear existing content
-        audioPlayer.src = '';
+        // Revoke previous object URL if it exists
+        if (currentAudioObjectURL) {
+            URL.revokeObjectURL(currentAudioObjectURL);
+            currentAudioObjectURL = null;
+            console.log("Revoked previous audio object URL.");
+        }
+        // Reset audio player more robustly
+        audioPlayer.removeAttribute('src');
+        audioPlayer.load(); // Important: tells the player to update after src removal
+
         originalTranscriptDiv.innerHTML = ''; // Clear original transcript
         timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
         previousSegmentsDiv.innerHTML = ''; // Clear context
@@ -286,9 +296,16 @@ document.addEventListener('DOMContentLoaded', () => {
     audioFileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
-            const objectURL = URL.createObjectURL(file);
-            audioPlayer.src = objectURL;
-            // URL.revokeObjectURL(objectURL); // Voi vapauttaa muistia myöhemmin, mutta tarvitaan toistoon
+            // Revoke previous object URL before creating a new one
+            if (currentAudioObjectURL) {
+                URL.revokeObjectURL(currentAudioObjectURL);
+                console.log("Revoked previous audio object URL before loading new one.");
+            }
+
+            currentAudioObjectURL = URL.createObjectURL(file); // Store the new URL
+            audioPlayer.src = currentAudioObjectURL;
+            // DO NOT revoke immediately: URL.revokeObjectURL(objectURL);
+
             console.log("Äänitiedosto ladattu:", file.name);
             // Extract base name from audio file
             const lastDotIndex = file.name.lastIndexOf('.');
@@ -298,6 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
             checkFilesLoaded(); // Check if both are loaded
         } else {
             audioFileLoaded = false; // Mark as not loaded if selection is cancelled
+            // Also revoke if selection is cancelled and a URL existed
+            if (currentAudioObjectURL) {
+                URL.revokeObjectURL(currentAudioObjectURL);
+                currentAudioObjectURL = null;
+                console.log("Revoked audio object URL due to file selection cancellation.");
+                // Reset player state as well
+                audioPlayer.removeAttribute('src');
+                audioPlayer.load();
+            }
             checkFilesLoaded();
         }
     });
@@ -1052,7 +1078,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Optional: Stop auto-save when navigating away
-    window.addEventListener('beforeunload', stopAutoSave);
+    window.addEventListener('beforeunload', () => {
+        stopAutoSave();
+        if (currentAudioObjectURL) {
+            URL.revokeObjectURL(currentAudioObjectURL);
+            console.log("Revoked audio object URL on page unload.");
+        }
+    });
 
 
     // --- Scroll Synchronization ---
