@@ -1,6 +1,6 @@
 # Transcription Checker Tool
 
-A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source. You can generate VTT files easily with Gemini in [AI Studio](https://aistudio.google.com).
+A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source. You can generate VTT files easily with Gemini in [AI Studio](https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221BD8IcXGVct71wT_kNHqU5rRnqj_LBkVF%22%5D,%22action%22:%22open%22,%22userId%22:%22110434416529506033412%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing).
 
 ![screenshot](<transcript screenshot.png>)
 

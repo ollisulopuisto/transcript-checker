@@ -176,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let transcriptData = []; // Taulukko VTT-datan tallentamiseen: { start, end, text, element }
     let originalVttFilename = 'transcript.vtt'; // Store original VTT filename for default save name
-    let isSyncingScroll = false; // Flag to prevent scroll event loops
     let activeCueIndex = -1; // Track the currently highlighted cue index
 
     // --- Initial Setup ---
@@ -750,30 +749,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeCue.element.classList.add('highlight');
                     // Vieritä korostettu elementti näkyviin alkuperäisessä transkriptiossa
                     // Use 'nearest' to minimize scrolling
-                    originalTranscriptDiv.removeEventListener('scroll', syncOriginalToEditable);
                     activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-                    // Re-enable listener after scroll likely finished
-                    requestAnimationFrame(() => {
-                        // Check if listener isn't already added to prevent duplicates if events fire rapidly
-                        originalTranscriptDiv.removeEventListener('scroll', syncOriginalToEditable); // Ensure it's removed first
-                        originalTranscriptDiv.addEventListener('scroll', syncOriginalToEditable);
-                    });
                 }
                 
                 // Highlight timestamp pair and scroll it into view
                 const timestampPairDiv = document.getElementById(`ts-pair-${newActiveCueIndex}`);
                 if (timestampPairDiv) {
                     timestampPairDiv.classList.add('highlight');
-                    // Scroll the editable column container to show the highlighted timestamp pair
-                    // Use 'nearest' to minimize scrolling
-                    editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal);
-                    timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-                    // Re-enable listener after scroll likely finished
-                    requestAnimationFrame(() => {
-                        // Check if listener isn't already added
-                        editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal); // Ensure it's removed first
-                        editableColumnContentDiv.addEventListener('scroll', syncEditableToOriginal);
-                    });
                 }
 
                 // Update the focused segment view to show current segment with context
@@ -1091,61 +1073,5 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Revoked audio object URL on page unload.");
         }
     });
-
-
-    // --- Scroll Synchronization ---
-
-    function syncScroll(sourceElement, targetElement) {
-        if (isSyncingScroll) return; // Prevent infinite loops
-
-        isSyncingScroll = true;
-
-        const sourceScrollTop = sourceElement.scrollTop;
-        const sourceScrollHeight = sourceElement.scrollHeight;
-        const sourceClientHeight = sourceElement.clientHeight;
-
-        // Check if target element exists and is scrollable
-        if (!targetElement || targetElement.scrollHeight <= targetElement.clientHeight) {
-             requestAnimationFrame(() => { isSyncingScroll = false; });
-             return;
-        }
-
-        const targetScrollHeight = targetElement.scrollHeight;
-        const targetClientHeight = targetElement.clientHeight;
-
-
-        // Calculate scroll percentage, handle division by zero if no scrollbar
-        const scrollPercentage = sourceScrollHeight > sourceClientHeight
-            ? sourceScrollTop / (sourceScrollHeight - sourceClientHeight)
-            : 0;
-
-        // Calculate target scroll position
-        const targetScrollTop = scrollPercentage * (targetScrollHeight - targetClientHeight);
-
-        // Set target scroll position if it's significantly different
-        // (Avoids minor fluctuations triggering loops)
-        // Increase tolerance slightly to avoid fighting with smooth scrollIntoView
-        if (Math.abs(targetElement.scrollTop - targetScrollTop) > 2) {
-             targetElement.scrollTop = targetScrollTop;
-        }
-
-        // Use requestAnimationFrame to reset the flag after the browser has rendered the scroll change
-        requestAnimationFrame(() => {
-            isSyncingScroll = false;
-        });
-    }
-
-    // Define named functions for scroll listeners
-    const syncOriginalToEditable = () => {
-        syncScroll(originalTranscriptDiv, editableColumnContentDiv);
-    };
-    const syncEditableToOriginal = () => {
-        syncScroll(editableColumnContentDiv, originalTranscriptDiv);
-    };
-
-    // Add initial listeners using the named functions
-    originalTranscriptDiv.addEventListener('scroll', syncOriginalToEditable);
-    editableColumnContentDiv.addEventListener('scroll', syncEditableToOriginal);
-
 
 }); // DOMContentLoaded loppuu
