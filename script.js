@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previousSegmentsDiv = document.getElementById('previousSegments');
     const nextSegmentsDiv = document.getElementById('nextSegments');
     let currentEditingIndex = -1; // Track which segment is currently being edited
+    let pausedForEditing = false; // Added: Track if paused due to editing focus
 
     // --- i18n Translations ---
     // The 'translations' object is now loaded from translations.js
@@ -648,6 +649,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Use formatDisplayTime for the UI
         currentTimeSpan.textContent = formatDisplayTime(currentTime);
 
+        // --- Auto-pause logic ---
+        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
+            const currentCue = transcriptData[currentEditingIndex];
+            // Check if the textarea has focus and time is near the end of the current cue
+            if (document.activeElement === editableTranscriptTextarea &&
+                currentTime >= currentCue.end - 0.1 && // Pause slightly before the end
+                !audioPlayer.paused) {
+                audioPlayer.pause();
+                pausedForEditing = true;
+                console.log("Paused for editing at end of segment", currentEditingIndex);
+                // Prevent immediate highlight change by returning early? No, let highlight update.
+            }
+        }
+        // --- End Auto-pause logic ---
+
+
         let newActiveCueIndex = -1;
 
         // Etsi aktiivinen cue
@@ -691,6 +708,24 @@ document.addEventListener('DOMContentLoaded', () => {
             activeCueIndex = newActiveCueIndex; // Päivitä aktiivisen cuen indeksi
         }
     });
+
+    // --- Add blur listener to resume playback ---
+    editableTranscriptTextarea.addEventListener('blur', () => {
+        if (pausedForEditing) {
+            audioPlayer.play();
+            // pausedForEditing = false; // Resetting in the 'play' listener is safer
+            console.log("Resuming playback after editor blur.");
+        }
+    });
+
+    // --- Add play listener to handle manual resume ---
+    audioPlayer.addEventListener('play', () => {
+        if (pausedForEditing) {
+            pausedForEditing = false;
+            console.log("Manual resume detected, resetting pausedForEditing flag.");
+        }
+    });
+
 
      // Lisää kuuntelija audioPlayerin latautumiselle varmistamaan, että kesto on saatavilla
     audioPlayer.addEventListener('loadedmetadata', () => {
