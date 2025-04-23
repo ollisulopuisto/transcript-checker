@@ -47,8 +47,20 @@
                 <div id="timestampEditor" class="timestamp-editor">
                     <!-- Timestamp inputs will be generated here by JS -->
                 </div>
-                <!-- Existing textarea -->
-                <textarea id="editableTranscript" class="editable-transcript-area" data-translate-key="editableTranscriptPlaceholder" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
+                
+                <!-- Replacing the simple textarea with context-focused editing -->
+                <div class="transcript-context-container">
+                    <!-- Previous segments (non-editable) -->
+                    <div id="previousSegments" class="previous-segments"></div>
+                    
+                    <!-- Current segment (editable) -->
+                    <div class="current-segment">
+                        <textarea id="editableTranscript" class="editable-transcript-area" data-translate-key="editableTranscriptPlaceholder" placeholder="Tekstitys ilman aikaleimoja ilmestyy tähän muokattavaksi..."></textarea>
+                    </div>
+                    
+                    <!-- Next segments (non-editable) -->
+                    <div id="nextSegments" class="next-segments"></div>
+                </div>
             </div>
             <p><small data-translate-key="saveNote">Huom: Muutokset tallentuvat automaattisesti paikallisesti.</small></p>
         </div>

@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const timestampEditorDiv = document.getElementById('timestampEditor'); // Added
     const editableColumnContentDiv = document.getElementById('editableColumnContent'); // Added
 
+    // --- Needed variables for focused segment editing ---
+    const previousSegmentsDiv = document.getElementById('previousSegments');
+    const nextSegmentsDiv = document.getElementById('nextSegments');
+    let currentEditingIndex = -1; // Track which segment is currently being edited
+
     // --- i18n Translations ---
     const translations = {
         en: {
@@ -356,6 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayTranscription(cues) {
         originalTranscriptDiv.innerHTML = ''; // Tyhjennä vanha sisältö
         timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
+        previousSegmentsDiv.innerHTML = ''; // Clear previous segments
+        nextSegmentsDiv.innerHTML = ''; // Clear next segments
         let editableText = '';
         let currentPos = 0; // Track character position in editable textarea
 
@@ -371,14 +378,15 @@ document.addEventListener('DOMContentLoaded', () => {
             cueElement.addEventListener('click', () => {
                 if (!isNaN(cue.start)) {
                     audioPlayer.currentTime = cue.start;
-                    // audioPlayer.play(); // Optional: start playback on click
+                    // Update the focused view to this segment
+                    updateFocusedSegmentView(index);
                 }
             });
 
             originalTranscriptDiv.appendChild(cueElement);
             cue.element = cueElement; // Tallenna viittaus elementtiin
 
-            // Muokattava tekstitys
+            // Muokattava tekstitys (we'll handle this with the focused view now)
             const textToAdd = cue.text + '\n\n';
             editableText += textToAdd;
             cue.editableStart = currentPos; // Store start index
@@ -415,7 +423,13 @@ document.addEventListener('DOMContentLoaded', () => {
             cue.endTimestampInput = endInput;
         });
 
-        editableTranscriptTextarea.value = editableText.trim(); // Poista lopun tyhjä rivi
+        // Initialize with no focused segment
+        currentEditingIndex = -1;
+        
+        // If we have entries, show the first one
+        if (cues.length > 0) {
+            updateFocusedSegmentView(0);
+        }
 
         // Reset scroll positions when loading new content
         originalTranscriptDiv.scrollTop = 0;
@@ -425,6 +439,84 @@ document.addEventListener('DOMContentLoaded', () => {
         // Start auto-saving after displaying new content
         lastAutoSavedContent = editableTranscriptTextarea.value; // Initialize for auto-save check
         startAutoSave();
+    }
+
+    // Helper function to create context segments
+    function createContextSegment(cue, index, isCurrentSegment = false) {
+        if (!cue) return null;
+        
+        const timestampText = `[${formatVttTime(cue.start)} - ${formatVttTime(cue.end)}]`;
+        
+        if (isCurrentSegment) {
+            // For the active segment, we return the text to put in the textarea
+            return cue.text;
+        } else {
+            // For context segments, we create a div with the text
+            const segmentDiv = document.createElement('div');
+            segmentDiv.className = 'context-segment';
+            segmentDiv.dataset.index = index;
+            
+            // Add clickable timestamp indicator
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'timestamp-indicator';
+            timestampDiv.textContent = timestampText;
+            timestampDiv.addEventListener('click', () => {
+                // Navigate to this timestamp when clicked
+                if (!isNaN(cue.start)) {
+                    audioPlayer.currentTime = cue.start;
+                }
+            });
+            
+            // Add text content
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = cue.text;
+            
+            segmentDiv.appendChild(timestampDiv);
+            segmentDiv.appendChild(contentDiv);
+            
+            return segmentDiv;
+        }
+    }
+
+    // Update function to handle the focused segment display
+    function updateFocusedSegmentView(index) {
+        if (index < 0 || index >= transcriptData.length || index === currentEditingIndex) {
+            return; // Invalid index or already displaying this segment
+        }
+        
+        // Save any changes from the current segment before switching
+        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
+            const currentText = editableTranscriptTextarea.value.trim();
+            if (currentText !== transcriptData[currentEditingIndex].text) {
+                transcriptData[currentEditingIndex].text = currentText;
+                // Update the original display as well
+                if (transcriptData[currentEditingIndex].element) {
+                    transcriptData[currentEditingIndex].element.textContent = 
+                        `[${formatTime(transcriptData[currentEditingIndex].start)} - ${formatTime(transcriptData[currentEditingIndex].end)}] ${currentText}`;
+                }
+            }
+        }
+        
+        // Clear previous context segments
+        previousSegmentsDiv.innerHTML = '';
+        nextSegmentsDiv.innerHTML = '';
+        
+        // Add previous segments (up to 2)
+        for (let i = Math.max(0, index - 2); i < index; i++) {
+            const segment = createContextSegment(transcriptData[i], i);
+            if (segment) previousSegmentsDiv.appendChild(segment);
+        }
+        
+        // Set current segment in textarea
+        const currentText = createContextSegment(transcriptData[index], index, true);
+        editableTranscriptTextarea.value = currentText || '';
+        currentEditingIndex = index;
+        
+        // Add next segments (up to 2)
+        for (let i = index + 1; i <= Math.min(transcriptData.length - 1, index + 2); i++) {
+            const segment = createContextSegment(transcriptData[i], i);
+            if (segment) nextSegmentsDiv.appendChild(segment);
+        }
     }
 
     // NEW: Event handler for timestamp input changes
@@ -559,9 +651,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         originalTranscriptDiv.addEventListener('scroll', syncOriginalToEditable);
                     });
                 }
-                 // Highlight timestamp pair and scroll it into view
-                 const timestampPairDiv = document.getElementById(`ts-pair-${newActiveCueIndex}`);
-                 if (timestampPairDiv) {
+                
+                // Highlight timestamp pair and scroll it into view
+                const timestampPairDiv = document.getElementById(`ts-pair-${newActiveCueIndex}`);
+                if (timestampPairDiv) {
                     timestampPairDiv.classList.add('highlight');
                     // Scroll the editable column container to show the highlighted timestamp pair
                     // Temporarily disable sync listener before scrolling editable container
@@ -573,35 +666,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal); // Ensure it's removed first
                         editableColumnContentDiv.addEventListener('scroll', syncEditableToOriginal);
                     });
-                 }
-
-                // Valitse vastaava teksti muokattavassa kentässä
-                if (typeof activeCue.editableStart === 'number' && typeof activeCue.editableEnd === 'number') {
-                    // editableTranscriptTextarea.focus(); // Focusing might steal focus unexpectedly, test if needed
-                    editableTranscriptTextarea.setSelectionRange(activeCue.editableStart, activeCue.editableEnd);
-                    
-                    // Ensure the selected text in the textarea is visible
-                    // Calculate the line height and approximate position
-                    const textBeforeCursor = editableTranscriptTextarea.value.substring(0, activeCue.editableStart);
-                    const lineHeight = parseFloat(window.getComputedStyle(editableTranscriptTextarea).lineHeight) || 18;
-                    const linesBeforeCursor = textBeforeCursor.split('\n').length - 1;
-                    
-                    // Calculate position and scroll the textarea to show selected text
-                    const approximateScrollPosition = linesBeforeCursor * lineHeight;
-                    editableTranscriptTextarea.scrollTop = approximateScrollPosition - (editableTranscriptTextarea.clientHeight / 3);
                 }
-            } else {
-                 // Jos mikään cue ei ole aktiivinen, poista valinta editorista
-                 // Check if textarea currently has focus to avoid stealing focus unnecessarily
-                 if (document.activeElement === editableTranscriptTextarea) {
-                    const currentSelectionStart = editableTranscriptTextarea.selectionStart;
-                    const currentSelectionEnd = editableTranscriptTextarea.selectionEnd;
-                    // Only clear selection if something related to cues was selected
-                    const previousCue = transcriptData[activeCueIndex];
-                     if (previousCue && currentSelectionStart === previousCue.editableStart && currentSelectionEnd === previousCue.editableEnd) {
-                         editableTranscriptTextarea.setSelectionRange(currentSelectionStart, currentSelectionStart); // Collapse selection
-                     }
-                 }
+
+                // Update the focused segment view to show current segment with context
+                updateFocusedSegmentView(newActiveCueIndex);
             }
 
             activeCueIndex = newActiveCueIndex; // Päivitä aktiivisen cuen indeksi
