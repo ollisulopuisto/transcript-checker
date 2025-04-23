@@ -130,6 +130,16 @@ document.addEventListener('DOMContentLoaded', () => {
             cueElement.dataset.start = cue.start;
             cueElement.dataset.end = cue.end;
             cueElement.id = `cue-${index}`; // Yksilöllinen ID
+
+            // Lisää klikkauskuuntelija aikahyppyä varten
+            cueElement.addEventListener('click', () => {
+                if (!isNaN(cue.start)) {
+                    audioPlayer.currentTime = cue.start;
+                    // Jos haluat toiston alkavan heti klikkauksesta:
+                    // audioPlayer.play();
+                }
+            });
+
             originalTranscriptDiv.appendChild(cueElement);
             cue.element = cueElement; // Tallenna viittaus elementtiin
 

@@ -74,6 +74,11 @@ h1, h2 {
     border-radius: 3px;
     display: block; /* Varmistaa, että highlight peittää koko rivin */
     transition: background-color 0.2s ease-in-out; /* Pehmeä siirtymä */
+    cursor: pointer; /* Lisää osoitin osoittamaan klikattavuutta */
+}
+
+#originalTranscript span:hover { /* Lisää hover-efekti */
+    background-color: #eee; /* Kevyt korostus hoverilla */
 }
 
 #originalTranscript .highlight {
