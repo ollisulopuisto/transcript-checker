@@ -411,7 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Update the focused view to this segment
                     updateFocusedSegmentView(index);
                     // Ensure the clicked element is scrolled into view if needed
-                    cueElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    // Use 'nearest' to minimize scrolling, keeping player potentially visible
+                    cueElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 }
             });
 
@@ -669,9 +670,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (activeCue.element) {
                     activeCue.element.classList.add('highlight');
                     // Vieritä korostettu elementti näkyviin alkuperäisessä transkriptiossa
-                    // Temporarily disable sync listener before scrolling original transcript
+                    // Use 'nearest' to minimize scrolling
                     originalTranscriptDiv.removeEventListener('scroll', syncOriginalToEditable);
-                    activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                     // Re-enable listener after scroll likely finished
                     requestAnimationFrame(() => {
                         // Check if listener isn't already added to prevent duplicates if events fire rapidly
@@ -685,9 +686,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (timestampPairDiv) {
                     timestampPairDiv.classList.add('highlight');
                     // Scroll the editable column container to show the highlighted timestamp pair
-                    // Temporarily disable sync listener before scrolling editable container
+                    // Use 'nearest' to minimize scrolling
                     editableColumnContentDiv.removeEventListener('scroll', syncEditableToOriginal);
-                    timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                     // Re-enable listener after scroll likely finished
                     requestAnimationFrame(() => {
                         // Check if listener isn't already added
