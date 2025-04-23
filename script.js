@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFormatOptions = document.getElementById('saveFormatOptions'); // Container for format radios
     const fileInputContainer = document.getElementById('fileInputContainer'); // Added
     const toggleFileInputsBtn = document.getElementById('toggleFileInputsBtn'); // Added
+    const langBtnEn = document.getElementById('langBtnEn'); // Added
+    const langBtnFi = document.getElementById('langBtnFi'); // Added
+    const LANGUAGE_STORAGE_KEY = 'transcriptCheckerLang'; // Added
 
     // --- i18n Translations ---
     const translations = {
@@ -52,6 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
             vttInvalidTimeFormat: "Invalid time format: {timeString}",
             vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
             toggleFileInputsBtn: "Load New Files", // Added
+            // Language Selector
+            selectLanguageLabel: "Select Language:", // Added
+            langEn: "English", // Added
+            langFi: "Suomi", // Added
         },
         fi: {
             pageTitle: "Litteroinnin tarkistustyökalu",
@@ -90,15 +97,21 @@ document.addEventListener('DOMContentLoaded', () => {
             vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
             vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
             toggleFileInputsBtn: "Lataa uudet tiedostot", // Added
+            // Language Selector
+            selectLanguageLabel: "Valitse kieli:", // Added
+            langEn: "English", // Added
+            langFi: "Suomi", // Added
         }
     };
 
-    let currentLang = 'en'; // Default language
+    let currentLang = 'fi'; // Default language, will be overwritten by localStorage or initial load
     let audioFileLoaded = false; // Added state tracker
     let vttFileLoaded = false;   // Added state tracker
 
     // --- i18n Functions ---
     function getBrowserLanguage() {
+        // This function is no longer the primary source for language setting,
+        // but can be kept for potential future use or initial default.
         const lang = navigator.language || navigator.userLanguage || 'en';
         const primaryLang = lang.split('-')[0].toLowerCase();
         return translations[primaryLang] ? primaryLang : 'en'; // Fallback to 'en'
@@ -113,8 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function translateUI() {
-        currentLang = getBrowserLanguage();
+        // currentLang should be set before calling this function
         htmlElement.lang = currentLang; // Set lang attribute on <html> tag
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLang); // Save selected language
 
         document.querySelectorAll('[data-translate-key]').forEach(element => {
             const key = element.dataset.translateKey;
@@ -150,7 +164,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeCueIndex = -1; // Track the currently highlighted cue index
 
     // --- Initial Setup ---
-    translateUI(); // Translate UI on load
+    // Load language preference first
+    currentLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'fi'; // Load saved lang or default to 'fi'
+    translateUI(); // Translate UI on load using the determined language
     loadLatestAutoSave(); // Load autosave after translating
 
     // --- File Loading Visibility Toggle ---
@@ -174,6 +190,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // transcriptData = [];
         // stopAutoSave();
         // clearAutoSaves();
+    });
+
+    // --- Language Selection --- Added
+    langBtnEn.addEventListener('click', () => {
+        currentLang = 'en';
+        translateUI();
+        // Re-format autosave message if present
+        loadLatestAutoSave(true); // Pass flag to indicate it's just a language change
+    });
+
+    langBtnFi.addEventListener('click', () => {
+        currentLang = 'fi';
+        translateUI();
+        // Re-format autosave message if present
+        loadLatestAutoSave(true); // Pass flag to indicate it's just a language change
     });
 
     // --- Tiedostojen lataus ---
