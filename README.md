@@ -2,6 +2,8 @@
 
 A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source.
 
+![alt text](<transcript screenshot.png>)
+
 ## How to Use
 
 1.  **Open `index.html`**: Open the `index.html` file in your web browser.
