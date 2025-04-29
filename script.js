@@ -44,182 +44,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLang = 'fi';
     let audioFileLoaded = false;
     let vttFileLoaded = false;
-    let audioBaseFilename = 'transcript';
-    let currentAudioObjectURL = null;
     let transcriptData = [];
-    let originalVttFilename = 'transcript.vtt'; // Can be loaded or generated name
-    let activeCueIndex = -1;
     let currentEditingIndex = -1;
-    let pausedForEditing = false;
-    let currentMode = null; // 'load' or 'generate'
+    let activeCueIndex = -1; // Track the currently highlighted cue based on audio time
+    let autoSaveTimer = null;
+    const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
 
-    // --- Auto-save constants and state ---
-    const AUTO_SAVE_INTERVAL = 5000;
-    const MAX_AUTOSAVE_VERSIONS = 20;
-    const AUTOSAVE_KEY_PREFIX = 'autosave_transcript_';
-    let lastAutoSavedContent = '';
-    let autoSaveIntervalId = null;
-
-    // --- i18n Translations ---
-    // The 'translations' object is now loaded from translations.js
-
-    // --- i18n Functions ---
-    function getBrowserLanguage() {
-        // This function is no longer the primary source for language setting,
-        // but can be kept for potential future use or initial default.
-        const lang = navigator.language || navigator.userLanguage || 'en';
-        const primaryLang = lang.split('-')[0].toLowerCase();
-        return translations[primaryLang] ? primaryLang : 'en'; // Fallback to 'en'
+    // --- Utility Functions ---
+    function formatVttTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) seconds = 0; // Handle invalid inputs gracefully
+        const date = new Date(0);
+        date.setSeconds(seconds);
+        // Format: HH:MM:SS.sss (ensure 3 decimal places)
+        const timeStr = date.toISOString().substr(11, 12);
+        // Ensure milliseconds part has 3 digits
+        const parts = timeStr.split('.');
+        const ms = (parts[1] || '000').padEnd(3, '0');
+        return `${parts[0]}.${ms}`;
     }
 
-    function translate(key, replacements = {}) {
-        let text = translations[currentLang]?.[key] || translations.en[key] || `[${key}]`; // Fallback chain
-        for (const placeholder in replacements) {
-            text = text.replace(`{${placeholder}}`, replacements[placeholder]);
-        }
-        return text;
-    }
-
-    function translateUI() {
-        // currentLang should be set before calling this function
-        htmlElement.lang = currentLang; // Set lang attribute on <html> tag
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLang); // Save selected language
-
-        document.querySelectorAll('[data-translate-key]').forEach(element => {
-            const key = element.dataset.translateKey;
-            const translation = translate(key);
-            if (element.tagName === 'TEXTAREA' && element.placeholder) {
-                element.placeholder = translation;
-            } else if (element.tagName === 'TITLE') {
-                 document.title = translation;
-            } else if (element.tagName === 'INPUT' && element.placeholder) { // Translate placeholders for inputs
-                 element.placeholder = translation;
-            } else {
-                // Handle specific cases like button text if needed, otherwise default
-                element.textContent = translation;
-            }
-        });
-        // Update dynamic elements if needed
-        if (!vttFileLoaded) { // Check vttFileLoaded instead of input files
-             const loadPrompt = document.querySelector('#originalTranscript p');
-             if (loadPrompt) loadPrompt.textContent = translate('loadFilesPrompt');
-             // Update initial load message if it's visible
-             const initialMsgP = document.querySelector('#initialLoadMessage p');
-             if (initialMsgP && !initialLoadMessageDiv.classList.contains('hidden')) {
-                 initialMsgP.textContent = translate('loadFilesPrompt');
-             }
-        }
-         const editablePlaceholder = document.getElementById('editableTranscript');
-         if (editablePlaceholder) editablePlaceholder.placeholder = translate('editableTranscriptPlaceholder');
-
-         // Update VTT source label if visible
-         const vttSourceLabel = document.querySelector('#vttFileInfo span');
-         if (vttSourceLabel) vttSourceLabel.textContent = translate('vttSourceLabel');
-
-         // Update API Key label
-         const apiKeyLabel = document.querySelector('label[for="apiKey"]');
-         if (apiKeyLabel) apiKeyLabel.textContent = translate('apiKeyLabel');
-    }
-
-
-    // --- Initial Setup ---
-    // Hide main content and file info initially
-    mainContentDiv.classList.add('hidden');
-    vttFileInfoDiv.classList.add('hidden');
-    fileInputContainer.classList.add('hidden');
-    generateInputContainer.classList.add('hidden');
-    toggleFileInputsBtn.style.display = 'none'; // Hide the reset button initially
-    initialLoadMessageDiv.classList.add('hidden'); // Ensure message is hidden initially
-
-    // Show initial choice
-    initialChoiceContainer.classList.remove('hidden');
-
-
-    // --- Event Listeners for Initial Choice ---
-    loadExistingBtn.addEventListener('click', () => {
-        initialChoiceContainer.classList.add('hidden');
-        fileInputContainer.classList.remove('hidden');
-        generateInputContainer.classList.add('hidden'); // Ensure generate section is hidden
-        // No need to show toggleFileInputsBtn here yet, only after files are loaded
-    });
-
-    generateNewBtn.addEventListener('click', () => {
-        initialChoiceContainer.classList.add('hidden');
-        fileInputContainer.classList.add('hidden'); // Ensure load section is hidden
-        generateInputContainer.classList.remove('hidden');
-        // No need to show toggleFileInputsBtn here yet
-    });
-
-
-    // --- Event Listeners for File Inputs ---
-    audioFileInput.addEventListener('change', (event) => {
-        handleAudioFileSelect(event.target.files[0]);
-        checkFilesLoaded(); // Check if both files are now loaded
-    });
-
-    audioFileGenerateInput.addEventListener('change', (event) => {
-        handleAudioFileSelect(event.target.files[0]);
-        // In generate mode, loading audio doesn't immediately show the editor
-        // checkFilesLoaded() is called inside handleAudioFileSelect, which is fine.
-    });
-
-
-    vttFileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            stopAutoSave();
-            clearAutoSaves();
-            lastAutoSavedContent = '';
-
-            originalVttFilename = file.name;
-            vttFileNameSpan.textContent = originalVttFilename; // Display VTT filename
-            updateDefaultFilename();
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    transcriptData = parseVTT(e.target.result);
-                    displayTranscription(transcriptData);
-                    console.log("VTT file loaded and parsed:", file.name);
-                    vttFileLoaded = true; // Mark as loaded
-                    checkFilesLoaded(); // Show the editor
-                } catch (error) {
-                    console.error("VTT parsing error:", error);
-                    originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
-                    editableTranscriptTextarea.value = "";
-                    vttFileLoaded = false; // Mark as not loaded on error
-                    checkFilesLoaded(); // Update UI state
-                    vttFileNameSpan.textContent = ''; // Clear filename on error
-                }
-            };
-            reader.onerror = (e) => {
-                console.error("Error reading VTT file:", e);
-                originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttReadError')}</p>`;
-                editableTranscriptTextarea.value = "";
-                vttFileLoaded = false; // Mark as not loaded on error
-                checkFilesLoaded(); // Update UI state
-                vttFileNameSpan.textContent = ''; // Clear filename on error
-            };
-            reader.readAsText(file);
-        } else {
-             vttFileLoaded = false; // Mark as not loaded if selection is cancelled
-             vttFileNameSpan.textContent = ''; // Clear filename if selection cancelled
-             checkFilesLoaded();
-        }
-    });
-
-    // --- Playback Speed Control ---
-    playbackSpeedSelect.addEventListener('change', (event) => {
-        const speed = parseFloat(event.target.value);
-        if (!isNaN(speed)) {
-            audioPlayer.playbackRate = speed;
-            console.log(`Playback speed set to ${speed}x`);
-        }
-    });
-
-
-    // --- VTT Parsing ---
-    function timeToSeconds(timeString) {
+    function parseVttTime(timeString) {
         const parts = timeString.split(':');
         let seconds = 0;
         if (parts.length === 3) { // HH:MM:SS.sss
@@ -236,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return seconds;
     }
 
-    // NEW: Function to parse HH:MM:SS.sss format from input fields
     function parseVttTimeToSeconds(timeString) {
         // Allow flexibility: optional hours, comma or dot for milliseconds
         const timeRegex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})[.,](\d{1,3})$/;
@@ -271,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file); // Read as Data URL to get base64
         });
     }
-
 
     function parseVTT(vttContent) {
         const lines = vttContent.split(/\r?\n/);
@@ -346,8 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Display Update ---
     function displayTranscription(cues) {
-        originalTranscriptDiv.innerHTML = ''; // Tyhjennä vanha sisältö
-        timestampEditorDiv.innerHTML = ''; // Clear timestamp editor
+        originalTranscriptDiv.innerHTML = ''; // Clear previous original transcript
+        timestampEditorDiv.innerHTML = ''; // Clear previous timestamp inputs
         previousSegmentsDiv.innerHTML = ''; // Clear previous segments
         nextSegmentsDiv.innerHTML = ''; // Clear next segments
         // editableText variable is no longer needed as we populate the focused view directly
@@ -418,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editableTranscriptTextarea.value = '';
             previousSegmentsDiv.innerHTML = '';
             nextSegmentsDiv.innerHTML = '';
+            timestampEditorDiv.innerHTML = ''; // Ensure editor is clear
         }
 
         // Reset scroll positions when loading new content
@@ -426,8 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeCueIndex = -1; // Reset active cue tracking
 
         // Start auto-saving after displaying new content
-        lastAutoSavedContent = JSON.stringify(transcriptData.map(cue => ({ start: cue.start, end: cue.end, text: cue.text }))); // Initialize for auto-save check
-        startAutoSave();
+        startAutoSave(); // Ensure auto-save starts/restarts
     }
 
     // Helper function to create context segments
@@ -523,6 +365,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
          // Highlight the corresponding timestamp pair in the editor
          highlightTimestampPair(index);
+         // Ensure the editable column scrolls the focused element into view
+         // We need to scroll the container (#editableColumnContent)
+         const timestampPairDiv = document.getElementById(`ts-pair-${index}`);
+         if (timestampPairDiv && editableColumnContentDiv) {
+             // Calculate position relative to the scroll container
+             const containerRect = editableColumnContentDiv.getBoundingClientRect();
+             const elementRect = timestampPairDiv.getBoundingClientRect();
+             const offsetTop = elementRect.top - containerRect.top + editableColumnContentDiv.scrollTop;
+
+             // Scroll smoothly, keeping the element centered if possible
+             editableColumnContentDiv.scrollTo({
+                 top: offsetTop - (containerRect.height / 2) + (elementRect.height / 2), // Center vertically
+                 behavior: 'smooth'
+             });
+         }
     }
 
     // --- Timestamp Input Handling ---
@@ -636,18 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Timestamp Formatting ---
-    function formatVttTime(seconds) {
-        if (isNaN(seconds) || seconds < 0) seconds = 0; // Handle invalid inputs gracefully
-        const date = new Date(0);
-        date.setSeconds(seconds);
-        // Format: HH:MM:SS.sss (ensure 3 decimal places)
-        const timeStr = date.toISOString().substr(11, 12);
-        // Ensure milliseconds part has 3 digits
-        const parts = timeStr.split('.');
-        const ms = (parts[1] || '000').padEnd(3, '0');
-        return `${parts[0]}.${ms}`;
-    }
-
     function formatDisplayTime(seconds) {
         if (isNaN(seconds) || seconds < 0) {
             return "00:00";
@@ -678,28 +523,13 @@ document.addEventListener('DOMContentLoaded', () => {
          const timestampPairDiv = document.getElementById(`ts-pair-${indexToHighlight}`);
          if (timestampPairDiv) {
              timestampPairDiv.classList.add('highlight');
-             // Scroll the highlighted pair into view if needed
-             timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+             // Scrolling is handled in updateFocusedSegmentView now
+             // timestampPairDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
          }
     }
 
-
-    audioPlayer.addEventListener('timeupdate', () => {
+    function syncTranscriptWithAudio() {
         const currentTime = audioPlayer.currentTime;
-        currentTimeSpan.textContent = formatDisplayTime(currentTime);
-
-        // --- Auto-pause logic ---
-        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-            const currentCue = transcriptData[currentEditingIndex];
-            if (document.activeElement === editableTranscriptTextarea &&
-                currentTime >= currentCue.end - 0.1 &&
-                !audioPlayer.paused) {
-                audioPlayer.pause();
-                pausedForEditing = true;
-                console.log("Paused for editing at end of segment", currentEditingIndex);
-            }
-        }
-
         let newActiveCueIndex = -1;
         for (let i = 0; i < transcriptData.length; i++) {
             const cue = transcriptData[i];
@@ -724,73 +554,184 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Update the focused segment view only if the *cue* changes
-                updateFocusedSegmentView(newActiveCueIndex);
-                // Highlight timestamp pair is handled within updateFocusedSegmentView now
+                // and the textarea doesn't have focus (to avoid disrupting typing)
+                if (document.activeElement !== editableTranscriptTextarea) {
+                    updateFocusedSegmentView(newActiveCueIndex);
+                } else {
+                    // If textarea has focus, just highlight the timestamp pair without stealing focus
+                    highlightTimestampPair(newActiveCueIndex);
+                }
+                // Highlight original transcript element regardless of focus
+                 if (activeCue?.element) {
+                     activeCue.element.classList.add('highlight');
+                     activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                 }
             }
 
             activeCueIndex = newActiveCueIndex;
         }
-    });
+        // Update current time display continuously
+        currentTimeSpan.textContent = formatVttTime(currentTime);
+    }
 
-    // --- Blur/Play Listeners for Auto-pause ---
-    editableTranscriptTextarea.addEventListener('blur', () => {
-        if (pausedForEditing) {
-            // Save potentially changed text on blur before resuming
-            if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-                 const currentText = editableTranscriptTextarea.value;
-                 if (currentText !== transcriptData[currentEditingIndex].text) {
-                     transcriptData[currentEditingIndex].text = currentText;
-                     // Optionally update original transcript display here too
-                 }
-            }
-            audioPlayer.play().catch(e => console.error("Error resuming playback:", e));
-            // pausedForEditing = false; // Reset in 'play' listener
-            console.log("Resuming playback after editor blur.");
+    // --- State Management ---
+    function checkFilesLoaded() {
+        if (audioFileLoaded && vttFileLoaded) {
+            // Files are loaded, show the main editor content
+            mainContentDiv.classList.remove('hidden');
+            vttFileInfoDiv.classList.remove('hidden');
+            toggleFileInputsBtn.style.display = 'inline-block'; // Show toggle button
+            initialChoiceContainer.classList.add('hidden'); // Hide initial choice
+            fileInputContainer.classList.add('hidden'); // Hide file inputs
+            generateInputContainer.classList.add('hidden'); // Hide generate inputs
+            initialLoadMessageDiv.classList.add('hidden');
+            switchToEditorBtn.style.display = 'none'; // Ensure hidden when editor loads
+            switchToEditorFromGenerateBtn.style.display = 'none'; // Ensure hidden
+            saveButton.disabled = false; // Enable save button
         } else {
-             // Also save text if blurred without being paused by the auto-pause logic
-             if (document.activeElement !== editableTranscriptTextarea && currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-                  const currentText = editableTranscriptTextarea.value;
-                  if (currentText !== transcriptData[currentEditingIndex].text) {
-                      transcriptData[currentEditingIndex].text = currentText;
-                  }
-             }
+            // Files not yet loaded, ensure main content is hidden and show prompt
+            mainContentDiv.classList.add('hidden');
+            vttFileInfoDiv.classList.add('hidden');
+            toggleFileInputsBtn.style.display = 'none'; // Hide toggle button
+            initialChoiceContainer.classList.remove('hidden'); // Show initial choice
+            initialLoadMessageDiv.classList.remove('hidden'); // Show prompt message
+            saveButton.disabled = true; // Disable save button
+        }
+        // Update translations for dynamically shown/hidden elements if needed
+        updateTranslations();
+    }
+
+    // --- View Switching Logic ---
+
+    function returnToEditorView() {
+        if (audioFileLoaded && vttFileLoaded) {
+            mainContentDiv.classList.remove('hidden');
+            vttFileInfoDiv.classList.remove('hidden');
+            toggleFileInputsBtn.style.display = 'inline-block'; // Show toggle button
+
+            initialChoiceContainer.classList.add('hidden');
+            fileInputContainer.classList.add('hidden');
+            generateInputContainer.classList.add('hidden');
+            switchToEditorBtn.style.display = 'none'; // Hide button after returning
+            switchToEditorFromGenerateBtn.style.display = 'none'; // Hide button after returning
+        } else {
+            // Optional: Handle case where function is called inappropriately
+            console.warn("returnToEditorView called but files are not loaded.");
+            // Fallback to initial state check
+            checkFilesLoaded();
+        }
+    }
+
+    loadExistingBtn.addEventListener('click', () => {
+        initialChoiceContainer.classList.add('hidden');
+        generateInputContainer.classList.add('hidden'); // Ensure generate is hidden
+        fileInputContainer.classList.remove('hidden');
+        // Show "Return to Editor" button only if files are already loaded
+        if (audioFileLoaded && vttFileLoaded) {
+            switchToEditorBtn.style.display = 'inline-block';
+        } else {
+            switchToEditorBtn.style.display = 'none';
+        }
+        switchToEditorFromGenerateBtn.style.display = 'none'; // Ensure other button is hidden
+    });
+
+    generateNewBtn.addEventListener('click', () => {
+        initialChoiceContainer.classList.add('hidden');
+        fileInputContainer.classList.add('hidden'); // Ensure load section is hidden
+        generateInputContainer.classList.remove('hidden');
+        // Show "Return to Editor" button only if files are already loaded
+        if (audioFileLoaded && vttFileLoaded) {
+            switchToEditorFromGenerateBtn.style.display = 'inline-block';
+        } else {
+            switchToEditorFromGenerateBtn.style.display = 'none';
+        }
+        switchToEditorBtn.style.display = 'none'; // Ensure other button is hidden
+    });
+
+    // Button to toggle back to file/generate selection from the editor view
+    toggleFileInputsBtn.addEventListener('click', () => {
+        mainContentDiv.classList.add('hidden');
+        vttFileInfoDiv.classList.add('hidden'); // Also hide VTT info when going back
+        toggleFileInputsBtn.style.display = 'none'; // Hide this button itself
+        initialChoiceContainer.classList.remove('hidden'); // Show initial choice again
+        fileInputContainer.classList.add('hidden'); // Hide specific inputs initially
+        generateInputContainer.classList.add('hidden'); // Hide specific inputs initially
+        switchToEditorBtn.style.display = 'none'; // Hide return button
+        switchToEditorFromGenerateBtn.style.display = 'none'; // Hide return button
+    });
+
+    // Add event listeners for the "Return to Editor" buttons
+    switchToEditorBtn.addEventListener('click', returnToEditorView);
+    switchToEditorFromGenerateBtn.addEventListener('click', returnToEditorView);
+
+
+    // --- Event Listeners for File Inputs ---
+    audioFileInput.addEventListener('change', (event) => {
+        handleAudioFileSelect(event.target.files[0]);
+        checkFilesLoaded(); // Check if both files are now loaded
+    });
+
+    audioFileGenerateInput.addEventListener('change', (event) => {
+        handleAudioFileSelect(event.target.files[0]);
+        // Don't call checkFilesLoaded here, wait for generation or explicit action
+    });
+
+
+    vttFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            stopAutoSave();
+            clearAutoSaves();
+            lastAutoSavedContent = '';
+
+            originalVttFilename = file.name;
+            vttFileNameSpan.textContent = originalVttFilename; // Display VTT filename
+            updateDefaultFilename();
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    transcriptData = parseVTT(e.target.result);
+                    displayTranscription(transcriptData);
+                    console.log("VTT file loaded and parsed:", file.name);
+                    vttFileLoaded = true; // Mark as loaded
+                    checkFilesLoaded(); // Show the editor
+                } catch (error) {
+                    console.error("VTT parsing error:", error);
+                    originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
+                    editableTranscriptTextarea.value = "";
+                    vttFileLoaded = false; // Mark as not loaded on error
+                    checkFilesLoaded(); // Update UI state
+                    vttFileNameSpan.textContent = ''; // Clear filename on error
+                }
+            };
+            reader.onerror = (e) => {
+                console.error("Error reading VTT file:", e);
+                originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttReadError')}</p>`;
+                editableTranscriptTextarea.value = "";
+                vttFileLoaded = false; // Mark as not loaded on error
+                checkFilesLoaded(); // Update UI state
+                vttFileNameSpan.textContent = ''; // Clear filename on error
+            };
+            reader.readAsText(file);
+        } else {
+             vttFileLoaded = false; // Mark as not loaded if selection is cancelled
+             vttFileNameSpan.textContent = ''; // Clear filename if selection cancelled
+             checkFilesLoaded();
         }
     });
 
-    audioPlayer.addEventListener('play', () => {
-        if (pausedForEditing) {
-            pausedForEditing = false;
-            console.log("Manual resume detected, resetting pausedForEditing flag.");
+    // --- Playback Speed Control ---
+    playbackSpeedSelect.addEventListener('change', (event) => {
+        const speed = parseFloat(event.target.value);
+        if (!isNaN(speed)) {
+            audioPlayer.playbackRate = speed;
+            console.log(`Playback speed set to ${speed}x`);
         }
     });
 
 
-    // --- Audio Player Metadata/Error Handling ---
-     audioPlayer.addEventListener('loadedmetadata', () => {
-        console.log("Audio metadata loaded, duration:", audioPlayer.duration);
-    });
-
-     audioPlayer.addEventListener('error', (e) => {
-        console.error("Audio playback error:", e);
-        let errorKey = "audioErrorUnknown"; // Default error key
-        if (audioPlayer.error) {
-            switch (audioPlayer.error.code) {
-                case MediaError.MEDIA_ERR_ABORTED: errorKey = 'audioErrorAborted'; break;
-                case MediaError.MEDIA_ERR_NETWORK: errorKey = 'audioErrorNetwork'; break;
-                case MediaError.MEDIA_ERR_DECODE: errorKey = 'audioErrorDecode'; break;
-                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: errorKey = 'audioErrorNotSupported'; break;
-            }
-        }
-        const errorMessage = translate(errorKey);
-        // Display error more prominently, perhaps in the generateStatus or saveStatus area?
-        const statusArea = (currentMode === 'generate') ? generateStatus : saveStatus;
-        statusArea.textContent = `${translate('audioErrorGeneric')}${errorMessage}`;
-        statusArea.style.color = 'red';
-        statusArea.dataset.translateKey = 'audioErrorGeneric'; // Store key for re-translation
-    });
-
-
-    // --- Transcript Generation (Real API Call) ---
+    // --- Transcript Generation ---
     generateTranscriptBtn.addEventListener('click', async () => { // Add async
         const audioFile = audioFileGenerateInput.files[0];
         const apiKey = apiKeyInput.value.trim(); // Reads the API key
@@ -926,6 +867,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // --- END REAL API CALL ---
     });
+
+    // --- Initial Setup ---
+    // Hide main content and file info initially
+    mainContentDiv.classList.add('hidden');
+    vttFileInfoDiv.classList.add('hidden');
+    fileInputContainer.classList.add('hidden');
+    generateInputContainer.classList.add('hidden');
+    toggleFileInputsBtn.style.display = 'none'; // Hide the reset button initially
+    initialLoadMessageDiv.classList.add('hidden'); // Ensure message is hidden initially
+
+    // Show initial choice
+    initialChoiceContainer.classList.remove('hidden');
+
 
     // --- Cleanup ---
     window.addEventListener('beforeunload', () => {
