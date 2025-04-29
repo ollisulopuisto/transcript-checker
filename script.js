@@ -822,9 +822,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
 
-        generateStatus.textContent = translate('generatingStatus');
+        generateStatus.textContent = translate('generatingStatus'); // Keep this key
         generateStatus.style.color = 'blue';
         generateStatus.dataset.translateKey = 'generatingStatus';
+        generateStatus.classList.add('generating'); // Add class for animation
         generateTranscriptBtn.disabled = true; // Disable button during generation
 
         // --- START REAL API CALL ---
@@ -921,6 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
             checkFilesLoaded(); // Update UI state
         } finally {
             generateTranscriptBtn.disabled = false; // Re-enable button
+            generateStatus.classList.remove('generating'); // Remove class on finish
         }
         // --- END REAL API CALL ---
     });

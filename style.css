@@ -132,6 +132,17 @@ h2 {
     margin-top: 10px;
 }
 
+/* Add animation for the generating status */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.status-message.generating {
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
 
 /* Style for the toggle/action buttons */
 #toggleFileInputsBtn, #switchToEditorBtn, #switchToEditorFromGenerateBtn {
