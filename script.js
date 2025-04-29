@@ -1,15 +1,16 @@
 import { formatVttTime, parseVttTimeToSeconds, readFileAsBase64, formatDisplayTime } from './utils.js';
 import { parseVTT } from './vtt.js';
-// import { translate, updateTranslations, setLanguage, initI18n } from './i18n.js'; // Future import
+import { appState, API_KEY_STORAGE_KEY } from './state.js'; // Import state object
+import { translate, setLanguage, initI18n, updateTranslations } from './i18n.js'; // Import i18n functions
+import { initSave, startAutoSave, stopAutoSave, loadAutoSave, clearAutoSaves, updateDefaultFilename, autoSaveTranscript } from './save.js'; // Import save functions
 // import { initAudio, syncTranscriptWithAudio, handleAudioFileSelect } from './audio.js'; // Future import
 // import { initApi } from './api.js'; // Future import
-// import { initSave, updateDefaultFilename } from './save.js'; // Future import
 // import { initUI, displayTranscription, updateFocusedSegmentView, checkFilesLoaded, returnToEditorView } from './ui.js'; // Future import
-// import * as state from './state.js'; // Future import for state management
+
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Existing element references (keep necessary ones here for now)
-    const audioFileInput = document.getElementById('audioFile'); // This is now the shared audio input
+    // --- DOM Element References --- (Consider moving to dom.js)
+    const audioFileInput = document.getElementById('audioFile');
     const vttFileInput = document.getElementById('vttFile');
     const audioPlayer = document.getElementById('audioPlayer');
     const originalTranscriptDiv = document.getElementById('originalTranscript');
@@ -32,8 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const playbackSpeedSelect = document.getElementById('playbackSpeed');
     const previousSegmentsDiv = document.getElementById('previousSegments');
     const nextSegmentsDiv = document.getElementById('nextSegments');
-
-    // New element references for generation flow
     const initialChoiceContainer = document.getElementById('initialChoiceContainer');
     const loadExistingBtn = document.getElementById('loadExistingBtn');
     const generateNewBtn = document.getElementById('generateNewBtn');
@@ -46,75 +45,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const vttFileNameSpan = document.getElementById('vttFileName');
     const switchToEditorFromGenerateBtn = document.getElementById('switchToEditorFromGenerateBtn');
 
-
-    // --- State Variables (To be moved to state.js) ---
-    const LANGUAGE_STORAGE_KEY = 'transcriptCheckerLang';
-    const API_KEY_STORAGE_KEY = 'transcriptCheckerApiKey'; // Key for storing API key
-    let currentLang = 'fi';
-    let audioFileLoaded = false;
-    let vttFileLoaded = false;
-    let transcriptData = [];
-    let currentEditingIndex = -1;
-    let activeCueIndex = -1; // Track the currently highlighted cue based on audio time
-    let autoSaveTimer = null;
-    const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
-    let originalVttFilename = ''; // Added for default save name
-    let audioBaseFilename = ''; // Added for default save name
-    let lastAutoSavedContent = ''; // Track last saved content to avoid redundant saves
-    let currentAudioObjectURL = null; // To manage audio blob URL lifecycle
-
-    // --- Utility Functions (Moved to utils.js) ---
-    // formatVttTime moved
-    // parseVttTimeToSeconds moved
-    // readFileAsBase64 moved
-
-    // --- VTT Parsing (Moved to vtt.js) ---
-    // parseVTT moved
-
-    // --- Translation Functions (To be moved to i18n.js) ---
-    // Placeholder translate function
-    const translate = (key, params = {}) => {
-        const langTranslations = translations[currentLang] || translations.en;
-        let text = langTranslations[key] || translations.en[key] || key; // Fallback chain
-        for (const p in params) {
-            text = text.replace(`{${p}}`, params[p]);
-        }
-        return text;
+    // Object containing DOM elements to pass to modules
+    const domElements = {
+        audioFileInput, vttFileInput, audioPlayer, originalTranscriptDiv,
+        editableTranscriptTextarea, currentTimeSpan, saveButton, saveFilenameInput,
+        saveStatus, htmlElement, saveFormatOptions, fileInputContainer,
+        toggleFileInputsBtn, langBtnEn, langBtnFi, timestampEditorDiv,
+        editableColumnContentDiv, mainContentDiv, initialLoadMessageDiv,
+        switchToEditorBtn, playbackSpeedSelect, previousSegmentsDiv, nextSegmentsDiv,
+        initialChoiceContainer, loadExistingBtn, generateNewBtn, generateInputContainer,
+        sharedAudioInputContainer, apiKeyInput, generateTranscriptBtn, generateStatus,
+        vttFileInfoDiv, vttFileNameSpan, switchToEditorFromGenerateBtn
     };
 
-    function updateTranslations() {
-        document.querySelectorAll('[data-translate-key]').forEach(element => {
-            const key = element.dataset.translateKey;
-            const translation = translate(key);
-            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                if (element.placeholder) {
-                    element.placeholder = translation;
-                }
-                // Update value only if it's currently showing the placeholder key? Risky.
-                // Best practice: Don't use data-translate-key for dynamic values.
-            } else if (element.tagName === 'TITLE') {
-                 document.title = translation; // Update page title
-            } else {
-                element.textContent = translation;
-            }
-        });
-        // Update dynamic elements not using data-translate-key if needed
-        // Example: Update save filename placeholder/value if it depends on language
-        updateDefaultFilename(); // Re-generate default filename with current lang
-        // Update aria-labels or titles if necessary
-    }
 
-    function setLanguage(lang) {
-        if (translations[lang]) {
-            currentLang = lang;
-            htmlElement.lang = lang; // Update HTML lang attribute
-            localStorage.setItem(LANGUAGE_STORAGE_KEY, lang); // Save preference
-            updateTranslations();
-            console.log(`Language set to ${lang}`);
-        }
-    }
+    // --- State Variables (Moved to state.js) ---
+    // Access via appState.variableName
+
+    // --- Utility Functions (Moved to utils.js) ---
+
+    // --- VTT Parsing (Moved to vtt.js) ---
+
+    // --- Translation Functions (Moved to i18n.js) ---
+    // translate, updateTranslations, setLanguage are imported
 
     // --- Display Update (To be moved to ui.js) ---
+    // Placeholder object for UI functions needed by other modules (e.g., save.js)
+    // This will be properly populated when ui.js is created.
+    const uiFunctions = {
+        displayTranscription: (cues) => displayTranscription(cues), // Pass the actual function
+        checkFilesLoaded: () => checkFilesLoaded(), // Pass the actual function
+        // Add other UI functions as needed by other modules
+    };
+
+
     function displayTranscription(cues) {
         originalTranscriptDiv.innerHTML = ''; // Clear previous original transcript
         timestampEditorDiv.innerHTML = ''; // Clear previous timestamp inputs
@@ -174,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Initialize with the first segment focused if available
-        currentEditingIndex = -1; // Reset before updating
+        appState.currentEditingIndex = -1; // Reset before updating
         if (cues.length > 0) {
             updateFocusedSegmentView(0);
         } else {
@@ -188,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset scroll positions when loading new content
         originalTranscriptDiv.scrollTop = 0;
         editableColumnContentDiv.scrollTop = 0; // Scroll the new container
-        activeCueIndex = -1; // Reset active cue tracking
+        appState.activeCueIndex = -1; // Reset active cue tracking
 
         // Start auto-saving after displaying new content
         startAutoSave(); // Ensure auto-save starts/restarts
@@ -235,29 +199,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update function to handle the focused segment display (To be moved to ui.js)
     function updateFocusedSegmentView(index) {
-        if (index < 0 || index >= transcriptData.length || index === currentEditingIndex) {
+        if (index < 0 || index >= appState.transcriptData.length || index === appState.currentEditingIndex) {
             // Allow re-focusing the same segment to ensure UI consistency if needed
-            if (index === currentEditingIndex && index !== -1) {
+            if (index === appState.currentEditingIndex && index !== -1) {
                  // Ensure the textarea content matches the data if re-focusing
-                 if (editableTranscriptTextarea.value !== transcriptData[index].text) {
-                     editableTranscriptTextarea.value = transcriptData[index].text || '';
+                 if (editableTranscriptTextarea.value !== appState.transcriptData[index].text) {
+                     editableTranscriptTextarea.value = appState.transcriptData[index].text || '';
                  }
-            } else if (index < 0 || index >= transcriptData.length) {
+            } else if (index < 0 || index >= appState.transcriptData.length) {
                  return; // Invalid index
             }
-             if (index === currentEditingIndex) return; // Avoid redraw if index hasn't changed
+             if (index === appState.currentEditingIndex) return; // Avoid redraw if index hasn't changed
 
         }
 
         // Save any changes from the current segment before switching
-        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
+        if (appState.currentEditingIndex !== -1 && appState.currentEditingIndex < appState.transcriptData.length) {
             const currentText = editableTranscriptTextarea.value; // Don't trim here, preserve user spacing
-            if (currentText !== transcriptData[currentEditingIndex].text) {
-                transcriptData[currentEditingIndex].text = currentText;
+            if (currentText !== appState.transcriptData[appState.currentEditingIndex].text) {
+                appState.transcriptData[appState.currentEditingIndex].text = currentText;
                 // Update the original display text content if the element exists
-                 if (transcriptData[currentEditingIndex].element) {
-                     transcriptData[currentEditingIndex].element.textContent =
-                         `[${formatVttTime(transcriptData[currentEditingIndex].start)} - ${formatVttTime(transcriptData[currentEditingIndex].end)}] ${transcriptData[currentEditingIndex].text}`;
+                 if (appState.transcriptData[appState.currentEditingIndex].element) {
+                     appState.transcriptData[appState.currentEditingIndex].element.textContent =
+                         `[${formatVttTime(appState.transcriptData[appState.currentEditingIndex].start)} - ${formatVttTime(appState.transcriptData[appState.currentEditingIndex].end)}] ${appState.transcriptData[appState.currentEditingIndex].text}`;
                  }
             }
         }
@@ -268,18 +232,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Add previous segment (only 1)
         if (index > 0) {
-            const segment = createContextSegment(transcriptData[index - 1], index - 1);
+            const segment = createContextSegment(appState.transcriptData[index - 1], index - 1);
             if (segment) previousSegmentsDiv.appendChild(segment);
         }
 
         // Set current segment in textarea
-        const currentSegmentText = createContextSegment(transcriptData[index], index, true);
+        const currentSegmentText = createContextSegment(appState.transcriptData[index], index, true);
         editableTranscriptTextarea.value = currentSegmentText || '';
-        currentEditingIndex = index; // Update the index *after* potential save
+        appState.currentEditingIndex = index; // Update the index *after* potential save
 
         // Add next segment (only 1)
-        if (index < transcriptData.length - 1) {
-            const segment = createContextSegment(transcriptData[index + 1], index + 1);
+        if (index < appState.transcriptData.length - 1) {
+            const segment = createContextSegment(appState.transcriptData[index + 1], index + 1);
             if (segment) nextSegmentsDiv.appendChild(segment);
         }
 
@@ -308,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let seconds = NaN;
 
         // Only proceed if data exists for this index
-        if (!transcriptData[cueIndex]) return false;
+        if (!appState.transcriptData[cueIndex]) return false;
 
         seconds = parseVttTimeToSeconds(timeString); // Use imported function
 
@@ -318,13 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Basic format is valid, now check logic (start < end)
             const otherTimeType = timeType === 'start' ? 'end' : 'start';
-            const otherInputElement = transcriptData[cueIndex][`${otherTimeType}TimestampInput`];
+            const otherInputElement = appState.transcriptData[cueIndex][`${otherTimeType}TimestampInput`];
             // Ensure otherInputElement exists before accessing its value
-            const otherTimeValue = otherInputElement ? parseVttTimeToSeconds(otherInputElement.value) : transcriptData[cueIndex][otherTimeType];
+            const otherTimeValue = otherInputElement ? parseVttTimeToSeconds(otherInputElement.value) : appState.transcriptData[cueIndex][otherTimeType];
 
             let timesAreValid = false;
             // Check against the *parsed* value of the other input if it exists, otherwise the data value
-            const comparisonTime = !isNaN(otherTimeValue) ? otherTimeValue : transcriptData[cueIndex][otherTimeType];
+            const comparisonTime = !isNaN(otherTimeValue) ? otherTimeValue : appState.transcriptData[cueIndex][otherTimeType];
 
             if (timeType === 'start' && seconds < comparisonTime) {
                 timesAreValid = true;
@@ -338,8 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 inputElement.classList.remove('invalid');
                 inputElement.title = `${timeType === 'start' ? 'Start' : 'End'} time for cue ${cueIndex + 1}`;
 
-                // Update the transcriptData array
-                transcriptData[cueIndex][timeType] = seconds;
+                // Update the transcriptData array in state
+                appState.transcriptData[cueIndex][timeType] = seconds;
                 console.log(`Updated cue ${cueIndex} ${timeType} to ${seconds}s`);
 
                 // If this edit made the times valid, also remove invalid class from the *other* input
@@ -355,9 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Update the corresponding original transcript display
-                if (transcriptData[cueIndex].element) {
-                     transcriptData[cueIndex].element.textContent =
-                         `[${formatVttTime(transcriptData[cueIndex].start)} - ${formatVttTime(transcriptData[cueIndex].end)}] ${transcriptData[cueIndex].text}`; // Use imported function
+                if (appState.transcriptData[cueIndex].element) {
+                     appState.transcriptData[cueIndex].element.textContent =
+                         `[${formatVttTime(appState.transcriptData[cueIndex].start)} - ${formatVttTime(appState.transcriptData[cueIndex].end)}] ${appState.transcriptData[cueIndex].text}`; // Use imported function
                 }
                  // Update context view timestamps if visible
                  updateContextTimestamps(cueIndex);
@@ -417,8 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
         contextElements.forEach(el => {
             if (parseInt(el.dataset.index, 10) === cueIndex) {
                 const timestampIndicator = el.querySelector('.timestamp-indicator');
-                if (timestampIndicator && transcriptData[cueIndex]) {
-                    timestampIndicator.textContent = `[${formatVttTime(transcriptData[cueIndex].start)} - ${formatVttTime(transcriptData[cueIndex].end)}]`; // Use imported function
+                if (timestampIndicator && appState.transcriptData[cueIndex]) {
+                    timestampIndicator.textContent = `[${formatVttTime(appState.transcriptData[cueIndex].start)} - ${formatVttTime(appState.transcriptData[cueIndex].end)}]`; // Use imported function
                 }
             }
         });
@@ -426,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Timestamp Formatting (Moved to utils.js) ---
-    // formatDisplayTime moved
 
     // --- Playback Synchronization (To be moved to audio.js / ui.js) ---
     function highlightTimestampPair(indexToHighlight) {
@@ -445,23 +408,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncTranscriptWithAudio() {
         const currentTime = audioPlayer.currentTime;
         let newActiveCueIndex = -1;
-        for (let i = 0; i < transcriptData.length; i++) {
-            const cue = transcriptData[i];
+        for (let i = 0; i < appState.transcriptData.length; i++) {
+            const cue = appState.transcriptData[i];
             if (currentTime >= cue.start && currentTime < cue.end) {
                 newActiveCueIndex = i;
                 break;
             }
         }
 
-        if (newActiveCueIndex !== activeCueIndex) {
+        if (newActiveCueIndex !== appState.activeCueIndex) {
             // Remove old highlight from original transcript
-            if (activeCueIndex !== -1 && transcriptData[activeCueIndex]?.element) {
-                transcriptData[activeCueIndex].element.classList.remove('highlight');
+            if (appState.activeCueIndex !== -1 && appState.transcriptData[appState.activeCueIndex]?.element) {
+                appState.transcriptData[appState.activeCueIndex].element.classList.remove('highlight');
             }
 
             // Add new highlight and scroll original transcript
             if (newActiveCueIndex !== -1) {
-                const activeCue = transcriptData[newActiveCueIndex];
+                const activeCue = appState.transcriptData[newActiveCueIndex];
                 if (activeCue?.element) {
                     activeCue.element.classList.add('highlight');
                     // Scroll only if the element is not already visible
@@ -496,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            activeCueIndex = newActiveCueIndex;
+            appState.activeCueIndex = newActiveCueIndex;
         }
         // Update current time display continuously
         currentTimeSpan.textContent = formatDisplayTime(currentTime); // Use imported function
@@ -504,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State Management & UI Updates (To be moved to ui.js / state.js) ---
     function checkFilesLoaded() {
-        if (audioFileLoaded && vttFileLoaded) {
+        if (appState.audioFileLoaded && appState.vttFileLoaded) {
             // Files are loaded, show the main editor content
             mainContentDiv.classList.remove('hidden');
             vttFileInfoDiv.classList.remove('hidden');
@@ -538,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- View Switching Logic (To be moved to ui.js) ---
 
     function returnToEditorView() {
-        if (audioFileLoaded && vttFileLoaded) {
+        if (appState.audioFileLoaded && appState.vttFileLoaded) {
             mainContentDiv.classList.remove('hidden');
             vttFileInfoDiv.classList.remove('hidden');
             toggleFileInputsBtn.style.display = 'inline-block'; // Show toggle button
@@ -561,19 +524,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleAudioFileSelect(file) {
         if (file) {
             console.log("Audio file selected:", file.name, file.type);
-            audioBaseFilename = file.name.replace(/\.[^/.]+$/, ""); // Store base name
+            appState.audioBaseFilename = file.name.replace(/\.[^/.]+$/, ""); // Store base name
             updateDefaultFilename(); // Update save name suggestion
 
             // Revoke previous object URL if one exists
-            if (currentAudioObjectURL) {
-                URL.revokeObjectURL(currentAudioObjectURL);
+            if (appState.currentAudioObjectURL) {
+                URL.revokeObjectURL(appState.currentAudioObjectURL);
                 console.log("Revoked previous audio object URL.");
             }
 
             // Create a new object URL for the selected file
-            currentAudioObjectURL = URL.createObjectURL(file);
-            audioPlayer.src = currentAudioObjectURL;
-            audioFileLoaded = true;
+            appState.currentAudioObjectURL = URL.createObjectURL(file);
+            audioPlayer.src = appState.currentAudioObjectURL;
+            appState.audioFileLoaded = true;
 
             audioPlayer.onerror = (e) => {
                 console.error("Audio player error:", e);
@@ -586,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 // Display error (consider adding a dedicated error display area)
                 alert(translate(errorKey)); // Simple alert for now
-                audioFileLoaded = false;
+                appState.audioFileLoaded = false;
                 checkFilesLoaded(); // Update UI state
             };
              audioPlayer.oncanplaythrough = () => {
@@ -595,250 +558,32 @@ document.addEventListener('DOMContentLoaded', () => {
              };
 
         } else {
-            audioFileLoaded = false;
-            audioBaseFilename = '';
+            appState.audioFileLoaded = false;
+            appState.audioBaseFilename = '';
             updateDefaultFilename();
         }
         checkFilesLoaded(); // Update UI based on whether the file loaded
     }
 
 
-    // --- Autosave Functions (To be moved to save.js) ---
-    function autoSaveTranscript() {
-        if (!audioFileLoaded || !vttFileLoaded) return; // Don't save if files aren't loaded
+    // --- Autosave Functions (Moved to save.js) ---
+    // autoSaveTranscript, startAutoSave, stopAutoSave, loadAutoSave, clearAutoSaves are imported
 
-        // Save text from the currently focused textarea first
-        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-             const currentText = editableTranscriptTextarea.value;
-             if (currentText !== transcriptData[currentEditingIndex].text) {
-                 transcriptData[currentEditingIndex].text = currentText;
-                  // Update the original display text content if the element exists
-                 if (transcriptData[currentEditingIndex].element) {
-                     transcriptData[currentEditingIndex].element.textContent =
-                         `[${formatVttTime(transcriptData[currentEditingIndex].start)} - ${formatVttTime(transcriptData[currentEditingIndex].end)}] ${transcriptData[currentEditingIndex].text}`;
-                 }
-             }
-        }
-
-        const dataToSave = {
-            transcript: transcriptData.map(cue => ({
-                start: cue.start,
-                end: cue.end,
-                text: cue.text
-                // Don't save DOM elements (element, startTimestampInput, endTimestampInput)
-            })),
-            originalVttFilename: originalVttFilename,
-            audioBaseFilename: audioBaseFilename, // Save audio name too for context
-            timestamp: new Date().toISOString() // Add timestamp
-        };
-        const contentToSave = JSON.stringify(dataToSave);
-
-        // Avoid saving if content hasn't changed since last autosave
-        if (contentToSave === lastAutoSavedContent) {
-            // console.log("Autosave skipped: content unchanged.");
-            return;
-        }
-
-        try {
-            localStorage.setItem('transcriptAutoSave', contentToSave);
-            lastAutoSavedContent = contentToSave; // Update last saved content
-            console.log("Transcript autosaved at", new Date().toLocaleTimeString());
-        } catch (e) {
-            console.error("Autosave failed:", e);
-            saveStatus.textContent = translate('autosaveFailed');
-            saveStatus.style.color = 'red';
-            stopAutoSave(); // Stop trying if storage fails
-        }
-    }
-
-    function startAutoSave() {
-        stopAutoSave(); // Clear any existing timer
-        autoSaveTimer = setInterval(autoSaveTranscript, AUTO_SAVE_INTERVAL);
-        console.log("Autosave started.");
-    }
-
-    function stopAutoSave() {
-        if (autoSaveTimer) {
-            clearInterval(autoSaveTimer);
-            autoSaveTimer = null;
-            console.log("Autosave stopped.");
-        }
-    }
-
-     function loadAutoSave() {
-        try {
-            const savedDataJSON = localStorage.getItem('transcriptAutoSave');
-            if (savedDataJSON) {
-                const savedData = JSON.parse(savedDataJSON);
-                // Basic check if the saved data seems relevant (e.g., based on filename)
-                // This is a simple check; could be more robust
-                if (savedData.originalVttFilename || savedData.audioBaseFilename) {
-                    // Ask user if they want to load it? For now, just log and potentially load.
-                    const saveTime = new Date(savedData.timestamp).toLocaleTimeString();
-                    console.log(`Found autosaved data from ${saveTime} for VTT: ${savedData.originalVttFilename}, Audio: ${savedData.audioBaseFilename}`);
-
-                    // Simple prompt to load - replace with a better UI element later
-                    if (confirm(translate('autosavePrompt', { time: saveTime }))) {
-                        // Restore state
-                        transcriptData = savedData.transcript; // Restore transcript data
-                        originalVttFilename = savedData.originalVttFilename;
-                        audioBaseFilename = savedData.audioBaseFilename;
-                        lastAutoSavedContent = savedDataJSON; // Set last saved content
-
-                        // Need to simulate file loading state to show editor
-                        // This assumes the user will re-select the *same* files
-                        // A more robust solution would store file handles (if possible) or paths
-                        vttFileLoaded = true; // Mark as loaded conceptually
-                        audioFileLoaded = true; // Mark as loaded conceptually
-
-                        // Update UI
-                        vttFileNameSpan.textContent = originalVttFilename;
-                        updateDefaultFilename();
-                        displayTranscription(transcriptData); // Re-display restored data
-                        checkFilesLoaded(); // Show editor
-
-                        saveStatus.textContent = translate('autosaveLoaded', { time: saveTime });
-                        saveStatus.style.color = 'blue';
-                        setTimeout(() => { saveStatus.textContent = ''; }, 5000);
-                        return true; // Indicate that autosave was loaded
-                    } else {
-                        // User chose not to load, clear the autosave
-                        clearAutoSaves();
-                    }
-                } else {
-                     console.log("Autosaved data found but seems incomplete or irrelevant.");
-                     clearAutoSaves(); // Clear potentially corrupt data
-                }
-            }
-        } catch (e) {
-            console.error("Error loading autosave:", e);
-             clearAutoSaves(); // Clear potentially corrupt data
-        }
-        return false; // Indicate autosave was not loaded
-    }
-
-     function clearAutoSaves() {
-        try {
-            localStorage.removeItem('transcriptAutoSave');
-            lastAutoSavedContent = ''; // Reset tracker
-            console.log("Autosave cleared.");
-        } catch (e) {
-            console.error("Failed to clear autosave:", e);
-        }
-    }
-
-
-    // --- Save Functions (To be moved to save.js) ---
-    function updateDefaultFilename() {
-        const base = originalVttFilename ? originalVttFilename.replace(/\.vtt$/i, '') : (audioBaseFilename || 'transcript');
-        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
-        let extension = '.txt';
-        if (selectedFormat === 'vtt') {
-            extension = '.vtt';
-        }
-        saveFilenameInput.value = `${base}_edited${extension}`;
-    }
-
-    saveFormatOptions.addEventListener('change', updateDefaultFilename);
-
-    saveButton.addEventListener('click', () => {
-        // 1. Save current text area changes
-         if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-             transcriptData[currentEditingIndex].text = editableTranscriptTextarea.value;
-         }
-
-        // 2. Check for invalid timestamps before saving formats that need them
-        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked').value;
-        let hasInvalidTimestamps = false;
-        if (selectedFormat === 'txt_ts' || selectedFormat === 'vtt') {
-            transcriptData.forEach((cue, index) => {
-                if (cue.startTimestampInput && cue.startTimestampInput.classList.contains('invalid')) {
-                    hasInvalidTimestamps = true;
-                    console.warn(`Invalid start timestamp for cue ${index + 1}`);
-                }
-                if (cue.endTimestampInput && cue.endTimestampInput.classList.contains('invalid')) {
-                    hasInvalidTimestamps = true;
-                    console.warn(`Invalid end timestamp for cue ${index + 1}`);
-                }
-                 // Also double-check start < end logic using the data
-                 if (cue.start >= cue.end) {
-                     hasInvalidTimestamps = true;
-                     console.warn(`Start time not before end time for cue ${index + 1}`);
-                 }
-            });
-
-            if (hasInvalidTimestamps) {
-                saveStatus.textContent = translate('saveInvalidTimestampsError');
-                saveStatus.style.color = 'red';
-                 setTimeout(() => { saveStatus.textContent = ''; }, 4000);
-                return; // Stop saving
-            }
-        }
-
-
-        // 3. Generate content based on format
-        let content = '';
-        let mimeType = 'text/plain';
-        let filename = saveFilenameInput.value || 'transcript.txt';
-
-        if (transcriptData.length === 0) {
-            saveStatus.textContent = translate('saveNoText');
-            saveStatus.style.color = 'orange';
-            setTimeout(() => { saveStatus.textContent = ''; }, 3000);
-            return;
-        }
-
-        switch (selectedFormat) {
-            case 'txt_plain':
-                content = transcriptData.map(cue => cue.text).join('\n\n');
-                mimeType = 'text/plain';
-                if (!filename.toLowerCase().endsWith('.txt')) filename += '.txt';
-                break;
-            case 'txt_ts':
-                content = transcriptData.map(cue => `[${formatVttTime(cue.start)} --> ${formatVttTime(cue.end)}]\n${cue.text}`).join('\n\n');
-                mimeType = 'text/plain';
-                 if (!filename.toLowerCase().endsWith('.txt')) filename += '.txt';
-                break;
-            case 'vtt':
-                content = "WEBVTT\n\n";
-                content += transcriptData.map(cue => `${formatVttTime(cue.start)} --> ${formatVttTime(cue.end)}\n${cue.text}`).join('\n\n');
-                mimeType = 'text/vtt'; // Correct MIME type for VTT
-                 if (!filename.toLowerCase().endsWith('.vtt')) filename += '.vtt';
-                break;
-        }
-
-        // 4. Trigger download
-        try {
-            const blob = new Blob([content], { type: mimeType });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href); // Clean up blob URL
-
-            saveStatus.textContent = translate('saveSuccess', { filename: filename });
-            saveStatus.style.color = 'green';
-            setTimeout(() => { saveStatus.textContent = ''; }, 3000);
-
-            // Clear autosave after successful manual save? Optional.
-            // clearAutoSaves();
-
-        } catch (error) {
-            console.error("Save failed:", error);
-            saveStatus.textContent = translate('saveError');
-            saveStatus.style.color = 'red';
-            setTimeout(() => { saveStatus.textContent = ''; }, 3000);
-        }
-    });
+    // --- Save Functions (Moved to save.js) ---
+    // updateDefaultFilename and saveButton listener logic are moved
 
 
     // --- Event Listeners ---
 
-    // Language Buttons (To be moved to i18n.js)
-    langBtnEn.addEventListener('click', () => setLanguage('en'));
-    langBtnFi.addEventListener('click', () => setLanguage('fi'));
+    // Language Buttons (Listener logic remains, calls imported function)
+    langBtnEn.addEventListener('click', () => {
+        setLanguage('en', htmlElement);
+        updateDefaultFilename(); // Update filename after language change
+    });
+    langBtnFi.addEventListener('click', () => {
+        setLanguage('fi', htmlElement);
+        updateDefaultFilename(); // Update filename after language change
+    });
 
     // View Switching Buttons (To be moved to ui.js)
     loadExistingBtn.addEventListener('click', () => {
@@ -848,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sharedAudioInputContainer.classList.remove('hidden'); // Show shared audio input
         initialLoadMessageDiv.classList.add('hidden'); // Hide initial prompt
         // Show "Return to Editor" button only if files are already loaded
-        if (audioFileLoaded && vttFileLoaded) {
+        if (appState.audioFileLoaded && appState.vttFileLoaded) {
             switchToEditorBtn.style.display = 'inline-block';
         } else {
             switchToEditorBtn.style.display = 'none';
@@ -863,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sharedAudioInputContainer.classList.remove('hidden'); // Show shared audio input
         initialLoadMessageDiv.classList.add('hidden'); // Hide initial prompt
         // Show "Return to Editor" button only if files are already loaded
-        if (audioFileLoaded && vttFileLoaded) {
+        if (appState.audioFileLoaded && appState.vttFileLoaded) {
             switchToEditorFromGenerateBtn.style.display = 'inline-block';
         } else {
             switchToEditorFromGenerateBtn.style.display = 'none';
@@ -901,24 +646,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = event.target.files[0];
         if (file) {
             stopAutoSave(); // Stop autosave while loading new file
-            // Don't clear autosave yet, wait for successful load? Or clear immediately? Clearing now.
-            clearAutoSaves();
+            clearAutoSaves(); // Clear old autosave data
 
-
-            originalVttFilename = file.name;
-            vttFileNameSpan.textContent = originalVttFilename; // Display VTT filename
+            appState.originalVttFilename = file.name;
+            vttFileNameSpan.textContent = appState.originalVttFilename; // Display VTT filename
             updateDefaultFilename();
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    transcriptData = parseVTT(e.target.result); // Use imported function
-                    displayTranscription(transcriptData);
+                    appState.transcriptData = parseVTT(e.target.result); // Use imported function, store in state
+                    displayTranscription(appState.transcriptData); // Update UI
                     console.log("VTT file loaded and parsed:", file.name);
-                    vttFileLoaded = true; // Mark as loaded
+                    appState.vttFileLoaded = true; // Mark as loaded in state
                     checkFilesLoaded(); // Show the editor
-                    // Start autosave only after successful load and display
-                    // startAutoSave(); // Moved to displayTranscription
+                    // startAutoSave(); // Called within displayTranscription
                 } catch (error) {
                     console.error("VTT parsing error:", error);
                     originalTranscriptDiv.innerHTML = `<p style="color: red;">${translate('vttParseError')}</p>`;
@@ -926,8 +668,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     timestampEditorDiv.innerHTML = ''; // Clear editor on error
                     previousSegmentsDiv.innerHTML = '';
                     nextSegmentsDiv.innerHTML = '';
-                    transcriptData = []; // Clear data
-                    vttFileLoaded = false; // Mark as not loaded on error
+                    appState.transcriptData = []; // Clear data in state
+                    appState.vttFileLoaded = false; // Mark as not loaded on error
                     checkFilesLoaded(); // Update UI state
                     vttFileNameSpan.textContent = ''; // Clear filename on error
                 }
@@ -939,16 +681,16 @@ document.addEventListener('DOMContentLoaded', () => {
                  timestampEditorDiv.innerHTML = ''; // Clear editor on error
                  previousSegmentsDiv.innerHTML = '';
                  nextSegmentsDiv.innerHTML = '';
-                 transcriptData = []; // Clear data
-                vttFileLoaded = false; // Mark as not loaded on error
+                 appState.transcriptData = []; // Clear data in state
+                appState.vttFileLoaded = false; // Mark as not loaded on error
                 checkFilesLoaded(); // Update UI state
                 vttFileNameSpan.textContent = ''; // Clear filename on error
             };
             reader.readAsText(file);
         } else {
-             vttFileLoaded = false; // Mark as not loaded if selection is cancelled
+             appState.vttFileLoaded = false; // Mark as not loaded if selection is cancelled
              vttFileNameSpan.textContent = ''; // Clear filename if selection cancelled
-             originalVttFilename = '';
+             appState.originalVttFilename = '';
              updateDefaultFilename();
              checkFilesLoaded();
         }
@@ -966,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Audio Player Time Update (To be moved to audio.js)
     audioPlayer.addEventListener('timeupdate', syncTranscriptWithAudio);
 
-    // API Key Input (Persistence logic to be moved?)
+    // API Key Input (Persistence logic remains for now)
      apiKeyInput.addEventListener('change', () => {
         try {
             localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput.value.trim());
@@ -997,10 +739,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Ensure audio is loaded (handleAudioFileSelect should have been called by input change)
-        if (!audioFileLoaded || !audioPlayer.src) {
+        if (!appState.audioFileLoaded || !audioPlayer.src) {
              // Attempt to load it again if somehow missed
              handleAudioFileSelect(audioFile);
-             if (!audioFileLoaded) { // Check again if handleAudioFileSelect failed
+             if (!appState.audioFileLoaded) { // Check again if handleAudioFileSelect failed
                   generateStatus.textContent = translate('audioErrorGeneric') + "Could not load audio."; // Generic error
                   generateStatus.style.color = 'red';
                   generateStatus.dataset.translateKey = 'audioErrorGeneric';
@@ -1089,15 +831,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 5. Process and display
-            transcriptData = parseVTT(vttContent); // Use imported function
+            appState.transcriptData = parseVTT(vttContent); // Use imported function, store in state
 
-            // Set generated filename
-            originalVttFilename = `${audioBaseFilename}_generated.vtt`;
-            vttFileNameSpan.textContent = originalVttFilename; // Display filename
+            // Set generated filename in state
+            appState.originalVttFilename = `${appState.audioBaseFilename}_generated.vtt`;
+            vttFileNameSpan.textContent = appState.originalVttFilename; // Display filename
             updateDefaultFilename(); // Update save filename based on generated name
 
-            displayTranscription(transcriptData);
-            vttFileLoaded = true; // Mark VTT as loaded (generated)
+            displayTranscription(appState.transcriptData); // Update UI
+            appState.vttFileLoaded = true; // Mark VTT as loaded (generated) in state
             checkFilesLoaded(); // Show the editor
 
             generateStatus.textContent = translate('generateSuccess');
@@ -1110,14 +852,14 @@ document.addEventListener('DOMContentLoaded', () => {
             generateStatus.textContent = `${translate('generateError')} ${error.message}`; // Add error message detail
             generateStatus.style.color = 'red';
             generateStatus.dataset.translateKey = 'generateError'; // Keep base key for re-translation
-            vttFileLoaded = false; // Ensure VTT is not marked as loaded on error
-            transcriptData = []; // Clear any partial data
+            appState.vttFileLoaded = false; // Ensure VTT is not marked as loaded on error
+            appState.transcriptData = []; // Clear any partial data in state
             checkFilesLoaded(); // Update UI state
         } finally {
             generateTranscriptBtn.disabled = false; // Re-enable button
             generateStatus.classList.remove('generating'); // Remove class on finish
             // Restart autosave if files are now considered loaded
-            if (audioFileLoaded && vttFileLoaded) {
+            if (appState.audioFileLoaded && appState.vttFileLoaded) {
                  startAutoSave();
             }
         }
@@ -1126,39 +868,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Setup ---
     function initializeApp() {
-        // Load saved language preference
-        const savedLang = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-        const browserLang = navigator.language.split('-')[0]; // Get 'en' from 'en-US'
-        setLanguage(savedLang || (translations[browserLang] ? browserLang : 'fi')); // Default to 'fi' if browser lang not supported
+        // Initialize i18n (sets language based on storage/browser)
+        initI18n(htmlElement);
 
-         // Load saved API key
+        // Initialize Save module (attaches listeners, sets default filename)
+        // Pass necessary DOM elements and potentially UI functions
+        initSave(domElements, uiFunctions);
+
+        // Load saved API key
         const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
         if (savedApiKey) {
             apiKeyInput.value = savedApiKey;
         }
 
-        // Try loading autosaved data
+        // Try loading autosaved data (loadAutoSave now handles UI updates via passed functions)
         const autosaveLoaded = loadAutoSave();
 
-
-        // Set initial UI state only if autosave wasn't loaded (as loadAutoSave handles it)
+        // Set initial UI state only if autosave wasn't loaded
         if (!autosaveLoaded) {
              checkFilesLoaded(); // Set initial view based on file status (should show choice)
+        } else {
+            // If autosave loaded, ensure translations are correct for the loaded state
+            updateTranslations();
         }
 
-        // Hide elements that should only appear after load/generation
-        mainContentDiv.classList.add('hidden');
-        vttFileInfoDiv.classList.add('hidden');
-        toggleFileInputsBtn.style.display = 'none';
+        // Hide elements that should only appear after load/generation (redundant if checkFilesLoaded works correctly)
+        // mainContentDiv.classList.add('hidden');
+        // vttFileInfoDiv.classList.add('hidden');
+        // toggleFileInputsBtn.style.display = 'none';
 
-        // Ensure initial choice is visible if nothing was autosaved/loaded
-        if (!audioFileLoaded || !vttFileLoaded) {
-            initialChoiceContainer.classList.remove('hidden');
-            initialLoadMessageDiv.classList.remove('hidden'); // Show initial prompt
-            fileInputContainer.classList.add('hidden');
-            generateInputContainer.classList.add('hidden');
-            sharedAudioInputContainer.classList.add('hidden');
-        }
+        // Ensure initial choice is visible if nothing was autosaved/loaded (redundant if checkFilesLoaded works correctly)
+        // if (!appState.audioFileLoaded || !appState.vttFileLoaded) {
+        //     initialChoiceContainer.classList.remove('hidden');
+        //     initialLoadMessageDiv.classList.remove('hidden'); // Show initial prompt
+        //     fileInputContainer.classList.add('hidden');
+        //     generateInputContainer.classList.add('hidden');
+        //     sharedAudioInputContainer.classList.add('hidden');
+        // }
     }
 
     initializeApp(); // Run initialization
@@ -1167,13 +913,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Cleanup ---
     window.addEventListener('beforeunload', () => {
         // Attempt to save one last time before unload
-        autoSaveTranscript();
-        stopAutoSave();
+        autoSaveTranscript(); // Use imported function
+        stopAutoSave(); // Use imported function
 
         // Revoke audio object URL
-        if (currentAudioObjectURL) {
-            URL.revokeObjectURL(currentAudioObjectURL);
+        if (appState.currentAudioObjectURL) {
+            URL.revokeObjectURL(appState.currentAudioObjectURL);
             console.log("Revoked audio object URL on page unload.");
+            appState.currentAudioObjectURL = null; // Clear state
         }
     });
 
