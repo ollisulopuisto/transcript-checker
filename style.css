@@ -665,3 +665,12 @@ small {
 .hidden {
     display: none;
 }
+
+#generateInputContainer.hidden {
+    display: none;
+}
+
+#generateInputContainer {
+    display: block;
+    width: 100%;
+}
