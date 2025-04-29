@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State Variables ---
     const LANGUAGE_STORAGE_KEY = 'transcriptCheckerLang';
+    const API_KEY_STORAGE_KEY = 'transcriptCheckerApiKey'; // Key for storing API key
     let currentLang = 'fi';
     let audioFileLoaded = false;
     let vttFileLoaded = false;
@@ -124,6 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Setup ---
     currentLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'fi';
     translateUI();
+    // Load API Key from local storage
+    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (savedApiKey) {
+        apiKeyInput.value = savedApiKey;
+    }
     loadLatestAutoSave();
     saveButton.disabled = true;
     // Initial state: Show choice, hide inputs and main content
@@ -258,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
         audioFileInput.value = null;
         vttFileInput.value = null;
         audioFileGenerateInput.value = null; // Reset generate audio input too
-        apiKeyInput.value = ''; // Clear API key
+        apiKeyInput.value = ''; // Clear API key input field
+        localStorage.removeItem(API_KEY_STORAGE_KEY); // Remove API key from storage
 
         console.log("Reset to initial choice.");
     });
@@ -968,7 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Transcript Generation (Simulated) ---
     generateTranscriptBtn.addEventListener('click', () => {
         const audioFile = audioFileGenerateInput.files[0];
-        const apiKey = apiKeyInput.value.trim();
+        const apiKey = apiKeyInput.value.trim(); // Reads the API key
 
         if (!audioFile) {
             generateStatus.textContent = translate('noAudioForGeneration');
