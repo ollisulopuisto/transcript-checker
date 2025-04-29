@@ -16,6 +16,11 @@
         </div>
     </div>
 
+    <!-- VTT File Info Display -->
+    <div id="vttFileInfo" class="vtt-info-display hidden">
+        <span data-translate-key="vttSourceLabel">VTT Source:</span> <code id="vttFileName"></code>
+    </div>
+
     <!-- Main content area - initially hidden -->
     <div id="mainContent" class="hidden">
         <!-- Removed player-section div -->
@@ -76,7 +81,15 @@
     <!-- Bottom controls/save area -->
     <div class="bottom-controls-container">
         <div class="controls">
-            <div id="fileInputContainer"> <!-- Container for file inputs -->
+            <!-- Initial Choice -->
+            <div id="initialChoiceContainer">
+                 <h3 data-translate-key="initialChoiceHeading">Choose Action:</h3>
+                 <button id="loadExistingBtn" data-translate-key="loadExistingBtn">Load Existing VTT</button>
+                 <button id="generateNewBtn" data-translate-key="generateNewBtn">Generate VTT from Audio</button>
+            </div>
+
+            <!-- Container for standard file inputs (VTT + Audio) - Initially Hidden -->
+            <div id="fileInputContainer" class="hidden">
                 <label for="audioFile" data-translate-key="audioFileLabel">1. Valitse äänitiedosto:</label>
                 <input type="file" id="audioFile" accept="audio/*">
 
@@ -85,8 +98,22 @@
                 <!-- Add the new button here -->
                 <button id="switchToEditorBtn" style="display: none; margin-top: 10px;" data-translate-key="switchToEditorBtn">Palaa editoriin</button>
             </div>
-            <button id="toggleFileInputsBtn" style="display: none;" data-translate-key="toggleFileInputsBtn">Lataa uudet tiedostot</button> <!-- Toggle button -->
-            <div id="initialLoadMessage"> <!-- Message shown before files are loaded -->
+
+            <!-- Container for Generation Inputs (Audio + API Key + Button) - Initially Hidden -->
+            <div id="generateInputContainer" class="hidden">
+                 <label for="audioFileGenerate" data-translate-key="audioFileLabel">1. Select Audio File:</label>
+                 <input type="file" id="audioFileGenerate" accept="audio/*">
+
+                 <label for="apiKey" data-translate-key="apiKeyLabel">2. Enter API Key (Optional for Simulation):</label>
+                 <input type="password" id="apiKey" placeholder="Enter your API key here">
+
+                 <button id="generateTranscriptBtn" data-translate-key="generateTranscriptBtn" style="margin-top: 15px;">Generate Transcript</button>
+                 <p id="generateStatus" class="status-message"></p> <!-- Status for generation -->
+                 <button id="switchToEditorFromGenerateBtn" style="display: none; margin-top: 10px;" data-translate-key="switchToEditorBtn">Return to Editor</button> <!-- Similar to switchToEditorBtn -->
+            </div>
+
+            <button id="toggleFileInputsBtn" style="display: none;" data-translate-key="toggleFileInputsBtn">Load/Generate New Files</button> <!-- Modified Text -->
+            <div id="initialLoadMessage" class="hidden"> <!-- Initially hidden, shown by JS if needed -->
                  <p data-translate-key="loadFilesPrompt">Lataa ensin äänitiedosto ja VTT-tiedosto.</p>
             </div>
         </div>

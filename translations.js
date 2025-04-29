@@ -39,13 +39,25 @@ const translations = {
         vttInvalidTimeFormat: "Invalid time format: {timeString}",
         vttTimestampParseError: 'Error parsing timestamp on line {lineNumber}: "{line}"',
         vttInvalidEditableTimeFormat: "Invalid time format. Use HH:MM:SS.sss",
-        toggleFileInputsBtn: "Load New Files",
+        toggleFileInputsBtn: "Load/Generate New Files", // Modified text
         // Language Selector
         selectLanguageLabel: "Select UI Language:",
         langEn: "English",
         langFi: "suomi",
         switchToEditorBtn: "Return to Editor",
         playbackSpeedLabel: "Playback Speed:",
+        // New Generation Flow Keys
+        initialChoiceHeading: "Choose Action:",
+        loadExistingBtn: "Load Existing VTT",
+        generateNewBtn: "Generate VTT from Audio",
+        apiKeyLabel: "2. Enter API Key (Optional for Simulation):",
+        generateTranscriptBtn: "Generate Transcript",
+        vttSourceLabel: "VTT Source:",
+        generatingStatus: "Generating transcript, please wait...",
+        generateSuccess: "Transcript generated successfully.",
+        generateError: "Transcript generation failed. Check console for details.",
+        noAudioForGeneration: "Please select an audio file first.",
+        noApiKey: "Please enter an API key (required for actual generation).",
     },
     fi: {
         pageTitle: "Litteroinnin tarkistustyökalu",
@@ -85,12 +97,24 @@ const translations = {
         vttInvalidTimeFormat: "Virheellinen aikamuoto: {timeString}",
         vttTimestampParseError: 'Virhe rivin {lineNumber} aikaleiman jäsentämisessä: "{line}"',
         vttInvalidEditableTimeFormat: "Virheellinen aikamuoto. Käytä HH:MM:SS.sss",
-        toggleFileInputsBtn: "Lataa uudet tiedostot",
+        toggleFileInputsBtn: "Lataa/Generoi uudet tiedostot", // Modified text
         // Language Selector
         selectLanguageLabel: "Valitse käyttöliittymän kieli:",
         langEn: "English",
         langFi: "suomi",
         switchToEditorBtn: "Palaa editoriin",
         playbackSpeedLabel: "Toistonopeus:",
+        // New Generation Flow Keys
+        initialChoiceHeading: "Valitse toiminto:",
+        loadExistingBtn: "Lataa olemassaoleva VTT",
+        generateNewBtn: "Generoi VTT äänitiedostosta",
+        apiKeyLabel: "2. Syötä API-avain (Valinnainen simulaatiossa):",
+        generateTranscriptBtn: "Generoi tekstitys",
+        vttSourceLabel: "VTT-lähde:",
+        generatingStatus: "Generoidaan tekstitystä, odota hetki...",
+        generateSuccess: "Tekstityksen generointi onnistui.",
+        generateError: "Tekstityksen generointi epäonnistui. Tarkista konsoli.",
+        noAudioForGeneration: "Valitse ensin äänitiedosto.",
+        noApiKey: "Syötä API-avain (tarvitaan oikeassa generoinnissa).",
     }
 };
