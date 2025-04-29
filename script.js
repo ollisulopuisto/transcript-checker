@@ -1054,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // 3. Make API call to Gemini 1.5 Pro
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key=${apiKey}`; // Updated model name
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {

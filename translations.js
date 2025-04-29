@@ -2,8 +2,8 @@
 // For simplicity with the current setup, we'll make it globally accessible.
 const translations = {
     en: {
-        pageTitle: "Transcription Checker Tool",
-        mainHeading: "Transcription Checker Tool",
+        pageTitle: "Transcription Tool",
+        mainHeading: "Transcription Tool",
         audioFileLabel: "1. Select Audio File:",
         vttFileLabel: "2. Select VTT Subtitle File:",
         audioHeading: "Audio File",
@@ -60,8 +60,8 @@ const translations = {
         noApiKey: "Please enter an API key.", // Updated message
     },
     fi: {
-        pageTitle: "Litteroinnin tarkistustyökalu",
-        mainHeading: "Litteroinnin tarkistustyökalu",
+        pageTitle: "Litterointiapuri",
+        mainHeading: "Litterointiapuri",
         audioFileLabel: "1. Valitse äänitiedosto:",
         vttFileLabel: "2. Valitse VTT-tekstitystiedosto:",
         audioHeading: "Äänitiedosto",
