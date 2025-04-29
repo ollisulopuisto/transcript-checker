@@ -80,87 +80,58 @@ h2 {
 }
 
 /* General container styling */
-.controls, .column, .save-section {
-    margin-bottom: 25px; /* Increased spacing */
-    background-color: var(--container-bg);
-    padding: 25px; /* Increased padding */
-    border-radius: 8px; /* Increased rounding */
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-    transition: box-shadow 0.3s ease-in-out; /* Add transition for shadow */
+.controls {
+    /* Existing styles */
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    margin-bottom: 15px; /* Add space below controls */
 }
 
-/* Language Selector */
-#languageSelector {
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-    flex-shrink: 0;
-}
-
-#languageSelector button {
-    padding: 6px 12px; /* Adjusted padding */
-    margin-left: 8px; /* Increased margin */
-    border: 1px solid var(--border-color);
-    background-color: var(--container-bg);
-    color: var(--accent-color); /* Use accent color for text */
-    cursor: pointer;
-    border-radius: 4px;
-    font-weight: 500; /* Medium weight */
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
-}
-#languageSelector button:hover {
-    background-color: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
-}
-#languageSelector button:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-}
-
-
-/* Bottom Controls Container */
-.bottom-controls-container {
-    display: flex;
-    gap: 25px; /* Increased gap */
-    flex-wrap: wrap;
-}
-
-.controls, .save-section {
-    flex: 1;
-    min-width: 340px; /* Adjusted min width */
-    margin-bottom: 0;
+.controls h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
 }
 
 .controls label {
-    display: block;
-    margin-bottom: 10px; /* Increased spacing */
-    font-weight: 500; /* Medium weight */
-    color: var(--secondary-text-color); /* Use secondary color */
+    display: block; /* Make labels block elements */
+    margin-bottom: 5px; /* Add space below labels */
+    font-weight: bold;
 }
 
-.controls input[type="file"] {
-    display: block;
-    margin-bottom: 18px; /* Increased spacing */
-    color: var(--secondary-text-color);
-    /* Basic styling, can be enhanced further */
+.controls input[type="file"],
+.controls input[type="password"] {
+    display: block; /* Make inputs block elements */
+    margin-bottom: 15px; /* Add space below inputs */
+    width: calc(100% - 12px); /* Adjust width considering padding */
     padding: 5px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-/* Basic focus style for file inputs */
-.controls input[type="file"]:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow: var(--focus-ring);
 }
 
-/* Style to hide elements */
-.hidden {
-    display: none !important;
+.controls button {
+    margin-right: 10px;
+    padding: 8px 15px;
 }
+
+/* Style the containers for better visual grouping */
+#fileInputContainer,
+#generateInputContainer {
+    padding: 15px;
+    border: 1px dashed #ddd; /* Subtle border */
+    margin-top: 15px; /* Space from initial choice buttons if shown */
+    background-color: #fff; /* Slightly different background */
+}
+
+#initialChoiceContainer button {
+    margin-bottom: 10px; /* Space between initial choice buttons */
+}
+
+
+.status-message {
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
 
 /* Style for the toggle/action buttons */
 #toggleFileInputsBtn, #switchToEditorBtn, #switchToEditorFromGenerateBtn {
@@ -533,6 +504,10 @@ small {
 /* Save Section */
 .save-section {
     /* Styles already defined in general container */
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
 }
 
 .save-section h2 {
