@@ -730,13 +730,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // *** Make API key mandatory ***
+        // *** ADDED: Explicit check for API Key ***
         if (!apiKey) {
-            generateStatus.textContent = translate('noApiKey');
+            generateStatus.textContent = translate('noApiKey'); // Use existing translation key
             generateStatus.style.color = 'red';
             generateStatus.dataset.translateKey = 'noApiKey';
-            return;
+            return; // Stop execution if API key is missing
         }
+        // *** END ADDED CODE ***
 
         // Ensure audio is loaded (handleAudioFileSelect should have been called by input change)
         if (!appState.audioFileLoaded || !audioPlayer.src) {
@@ -752,9 +753,18 @@ document.addEventListener('DOMContentLoaded', () => {
              await new Promise(resolve => setTimeout(resolve, 100));
         }
 
+        // Initialize progress elements
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        // Show progress elements
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
 
         generateStatus.textContent = translate('generatingStatus'); // Keep this key
-        generateStatus.style.color = 'blue';
+        generateStatus.style.color = 'blue'; // Changed color to blue for generating status
         generateStatus.dataset.translateKey = 'generatingStatus';
         generateStatus.classList.add('generating'); // Add class for animation
         generateTranscriptBtn.disabled = true; // Disable button during generation
@@ -764,8 +774,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- START REAL API CALL ---
         try {
             // 1. Read audio file as base64
+            progressBar.style.width = '10%';
+            progressText.textContent = '10% - Reading audio file';
+            
             const audioBase64 = await readFileAsBase64(audioFile); // Use imported function
             const audioMimeType = audioFile.type || 'audio/mpeg'; // Provide a default MIME type if needed
+            
+            progressBar.style.width = '30%';
+            progressText.textContent = '30% - Preparing API request';
 
             // 2. Construct API payload for Gemini 1.5 Pro
             const requestBody = {
@@ -789,6 +805,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // }
             };
 
+            progressBar.style.width = '50%';
+            progressText.textContent = '50% - Sending to Google Gemini API';
+
             // 3. Make API call to Gemini 1.5 Pro
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`; // Use 1.5 pro latest
             const response = await fetch(apiUrl, {
@@ -798,6 +817,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(requestBody),
             });
+
+            progressBar.style.width = '70%';
+            progressText.textContent = '70% - Processing API response';
 
             if (!response.ok) {
                 let errorData;
@@ -812,6 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const responseData = await response.json();
+
+            progressBar.style.width = '80%';
+            progressText.textContent = '80% - Extracting transcript';
 
             // 4. Extract VTT content - Check response structure carefully
             // Gemini 1.5 Pro response structure might differ slightly, adjust as needed
@@ -830,6 +855,9 @@ document.addEventListener('DOMContentLoaded', () => {
                  vttContent = "WEBVTT\n\n" + vttContent;
             }
 
+            progressBar.style.width = '90%';
+            progressText.textContent = '90% - Parsing VTT content';
+
             // 5. Process and display
             appState.transcriptData = parseVTT(vttContent); // Use imported function, store in state
 
@@ -838,6 +866,9 @@ document.addEventListener('DOMContentLoaded', () => {
             vttFileNameSpan.textContent = appState.originalVttFilename; // Display filename
             updateDefaultFilename(); // Update save filename based on generated name
 
+            progressBar.style.width = '100%';
+            progressText.textContent = '100% - Complete';
+
             displayTranscription(appState.transcriptData); // Update UI
             appState.vttFileLoaded = true; // Mark VTT as loaded (generated) in state
             checkFilesLoaded(); // Show the editor
@@ -845,7 +876,11 @@ document.addEventListener('DOMContentLoaded', () => {
             generateStatus.textContent = translate('generateSuccess');
             generateStatus.style.color = 'green';
             generateStatus.dataset.translateKey = 'generateSuccess';
-            setTimeout(() => { generateStatus.textContent = ''; }, 5000); // Clear success message
+            setTimeout(() => { 
+                generateStatus.textContent = ''; 
+                // Hide progress bar after success
+                progressContainer.classList.add('hidden');
+            }, 5000); // Clear success message
 
         } catch (error) {
             console.error("Error during transcript generation:", error);
