@@ -455,6 +455,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
     }
 
+    // Helper function to read file as base64
+    function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                // result contains the Data URL (e.g., "data:audio/mpeg;base64,...")
+                // We need to extract only the base64 part
+                const base64String = reader.result.split(',')[1];
+                resolve(base64String);
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file); // Read as Data URL to get base64
+        });
+    }
+
+
     function parseVTT(vttContent) {
         const lines = vttContent.split(/\r?\n/);
         const cues = [];
@@ -972,8 +988,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // --- Transcript Generation (Simulated) ---
-    generateTranscriptBtn.addEventListener('click', () => {
+    // --- Transcript Generation (Real API Call) ---
+    generateTranscriptBtn.addEventListener('click', async () => { // Add async
         const audioFile = audioFileGenerateInput.files[0];
         const apiKey = apiKeyInput.value.trim(); // Reads the API key
 
@@ -984,13 +1000,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Optional: Check for API key if you intend to implement the real API call
-        // if (!apiKey) {
-        //     generateStatus.textContent = translate('noApiKey');
-        //     generateStatus.style.color = 'red';
-        //     generateStatus.dataset.translateKey = 'noApiKey';
-        //     return;
-        // }
+        // *** Make API key mandatory ***
+        if (!apiKey) {
+            generateStatus.textContent = translate('noApiKey');
+            generateStatus.style.color = 'red';
+            generateStatus.dataset.translateKey = 'noApiKey';
+            return;
+        }
 
         // Ensure audio is loaded into the player if not already
         if (!audioPlayer.src || !audioFileLoaded) {
@@ -1009,347 +1025,105 @@ document.addEventListener('DOMContentLoaded', () => {
         generateStatus.dataset.translateKey = 'generatingStatus';
         generateTranscriptBtn.disabled = true; // Disable button during generation
 
-        // --- SIMULATED API CALL ---
-        console.log("Simulating Gemini API call for:", audioFile.name);
-        setTimeout(() => {
-            try {
-                // Simulate a successful response with dummy VTT data
-                const dummyVttContent = `WEBVTT
+        // --- START REAL API CALL ---
+        try {
+            // 1. Read audio file as base64
+            const audioBase64 = await readFileAsBase64(audioFile);
+            const audioMimeType = audioFile.type || 'audio/mpeg'; // Provide a default MIME type if needed
 
-00:00:01.100 --> 00:00:03.500
-This is the first generated cue.
-
-00:00:04.000 --> 00:00:06.800
-And here is a second line of text.
-It can span multiple lines.
-
-00:00:07.500 --> 00:00:10.000
-A third and final cue for this simulation.
-`;
-                transcriptData = parseVTT(dummyVttContent);
-
-                // Set generated filename
-                originalVttFilename = `${audioBaseFilename}_generated.vtt`;
-                vttFileNameSpan.textContent = originalVttFilename; // Display filename
-                updateDefaultFilename(); // Update save filename based on generated name
-
-                displayTranscription(transcriptData);
-                vttFileLoaded = true; // Mark VTT as loaded (generated)
-                checkFilesLoaded(); // Show the editor
-
-                generateStatus.textContent = translate('generateSuccess');
-                generateStatus.style.color = 'green';
-                generateStatus.dataset.translateKey = 'generateSuccess';
-                setTimeout(() => { generateStatus.textContent = ''; }, 5000); // Clear success message
-
-            } catch (error) {
-                console.error("Error processing simulated generation:", error);
-                generateStatus.textContent = translate('generateError');
-                generateStatus.style.color = 'red';
-                generateStatus.dataset.translateKey = 'generateError';
-                vttFileLoaded = false; // Ensure VTT is not marked as loaded on error
-                checkFilesLoaded(); // Update UI state
-            } finally {
-                generateTranscriptBtn.disabled = false; // Re-enable button
-            }
-        }, 2500); // Simulate 2.5 second delay
-        // --- END SIMULATED API CALL ---
-    });
-
-
-    // --- Save Filename Update ---
-    function updateDefaultFilename() {
-        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
-        let extension = '.txt';
-        let baseName = '';
-
-        // Determine the base name: use original VTT name if loaded, or generated name if generated
-        if (currentMode === 'generate' && vttFileLoaded) {
-            // Use the generated filename base (e.g., "audio_base_name_generated")
-            const lastDotIndex = originalVttFilename.lastIndexOf('.');
-            baseName = lastDotIndex > 0 ? originalVttFilename.substring(0, lastDotIndex) : originalVttFilename;
-        } else if (currentMode === 'load' && vttFileLoaded) {
-             // Use the loaded VTT filename base
-             const lastDotIndex = originalVttFilename.lastIndexOf('.');
-             baseName = lastDotIndex > 0 ? originalVttFilename.substring(0, lastDotIndex) : originalVttFilename;
-        } else {
-            // Fallback to audio base name if VTT isn't loaded/generated yet
-            baseName = audioBaseFilename;
-        }
-
-
-        let suffix = '_modified'; // Default suffix
-
-        if (selectedFormat === 'vtt') {
-            extension = '.vtt';
-            // Keep suffix as '_modified'
-        } else if (selectedFormat === 'txt_ts') {
-            extension = '.txt';
-            suffix = '_modified_with_ts';
-        } else { // txt_plain
-            extension = '.txt';
-            // Keep suffix as '_modified'
-        }
-
-        saveFilenameInput.value = `${baseName}${suffix}${extension}`;
-    }
-    saveFormatOptions.addEventListener('change', updateDefaultFilename);
-
-
-    // --- Saving Modified Transcript ---
-    saveButton.addEventListener('click', () => {
-        if (saveButton.disabled) return;
-
-        // Save current focused segment's text before proceeding
-        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-             const currentText = editableTranscriptTextarea.value; // Preserve spacing
-             if (currentText !== transcriptData[currentEditingIndex].text) {
-                 transcriptData[currentEditingIndex].text = currentText;
-             }
-        }
-
-        const filename = saveFilenameInput.value.trim() || 'modified_transcript.txt';
-        const selectedFormat = document.querySelector('input[name="saveFormat"]:checked')?.value || 'txt_plain';
-
-        // Check for invalid timestamp inputs before saving formats that use them
-        if (selectedFormat === 'vtt' || selectedFormat === 'txt_ts') {
-            // Re-validate all timestamps before saving
-            let invalidCount = 0;
-            transcriptData.forEach(cue => {
-                if (cue.startTimestampInput && !validateAndUpdateTimestamp(cue.startTimestampInput)) {
-                    invalidCount++;
-                }
-                if (cue.endTimestampInput && !validateAndUpdateTimestamp(cue.endTimestampInput)) {
-                    // Avoid double counting if both are invalid due to relation
-                    if (!cue.startTimestampInput?.classList.contains('invalid')) {
-                         invalidCount++;
+            // 2. Construct API payload for Gemini 1.5 Pro
+            const requestBody = {
+                contents: [
+                    {
+                        parts: [
+                            // Simple prompt asking for VTT format
+                            { "text": "Transcribe this audio file into VTT format. Ensure timestamps are in HH:MM:SS.sss format." },
+                            {
+                                "inline_data": {
+                                    "mime_type": audioMimeType,
+                                    "data": audioBase64
+                                }
+                            }
+                        ]
                     }
-                }
+                ],
+                // Optional: Add generationConfig if needed, e.g., temperature
+                // generationConfig: {
+                //     "temperature": 0.2
+                // }
+            };
+
+            // 3. Make API call to Gemini 1.5 Pro
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
             });
 
-            if (invalidCount > 0) {
-                const firstInvalid = timestampEditorDiv.querySelector('input.invalid');
-                saveStatus.textContent = `Cannot save: ${invalidCount} invalid timestamp(s) found. Please correct them (HH:MM:SS.sss, start < end).`;
-                saveStatus.style.color = 'red';
-                saveStatus.dataset.translateKey = ''; // Custom message
-                firstInvalid?.focus(); // Focus the first invalid input
-                return;
-            }
-        }
-
-        if (transcriptData.length === 0) {
-             saveStatus.textContent = translate('saveNoText');
-             saveStatus.style.color = 'red';
-             saveStatus.dataset.translateKey = 'saveNoText';
-             return;
-        }
-
-        let outputContent = '';
-        let blobType = 'text/plain;charset=utf-8';
-
-        try {
-            if (selectedFormat === 'txt_plain') {
-                // Join all text blocks for plain text output
-                outputContent = transcriptData.map(cue => cue.text).join('\n\n'); // Use raw text, separate by double newline
-                blobType = 'text/plain;charset=utf-8';
-            } else {
-                // VTT and TXT_TS use the transcriptData directly
-                if (selectedFormat === 'vtt') {
-                    blobType = 'text/vtt';
-                    let vttLines = ["WEBVTT", ""];
-                    transcriptData.forEach((cue) => {
-                        const start = formatVttTime(cue.start);
-                        const end = formatVttTime(cue.end);
-                        // Use original textLines if available and unchanged, otherwise use cue.text split by newline
-                        const textContent = cue.text; // Use potentially modified text
-                        vttLines.push(`${start} --> ${end}`);
-                        // Handle multi-line text correctly for VTT
-                        textContent.split('\n').forEach(line => vttLines.push(line));
-                        vttLines.push(""); // Add empty line between cues
-                    });
-                    outputContent = vttLines.join('\n');
-                } else if (selectedFormat === 'txt_ts') {
-                    blobType = 'text/plain;charset=utf-8';
-                    const textLines = transcriptData.map((cue) => {
-                        const start = formatVttTime(cue.start);
-                        const end = formatVttTime(cue.end);
-                        const text = cue.text; // Use potentially modified text
-                        return `[${start} - ${end}] ${text}`;
-                    });
-                    outputContent = textLines.join('\n\n'); // Separate blocks with double newline
+            if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    // Handle cases where the error response is not JSON
+                    errorData = { error: { message: response.statusText } };
                 }
+                console.error("API Error Response:", errorData);
+                throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || response.statusText}`);
             }
 
-            // Create and download blob
-            const blob = new Blob([outputContent], { type: blobType });
-            const url = URL.createObjectURL(blob);
+            const responseData = await response.json();
 
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            // 4. Extract VTT content - Check response structure carefully
+            const generatedText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
 
-            saveStatus.textContent = translate('saveSuccess', { filename });
-            saveStatus.style.color = 'green';
-            saveStatus.dataset.translateKey = 'saveSuccess';
-            setTimeout(() => { saveStatus.textContent = ''; }, 5000);
+            if (!generatedText) {
+                console.error("API Response did not contain expected text:", responseData);
+                throw new Error("Failed to extract transcript from API response.");
+            }
+
+            // Clean potential markdown code block fences (```vtt ... ```)
+            const vttContent = generatedText.replace(/^```vtt\s*|```$/g, '').trim();
+
+            if (!vttContent.startsWith('WEBVTT')) {
+                 console.warn("Generated content doesn't start with WEBVTT. Prepending it.");
+                 vttContent = "WEBVTT\n\n" + vttContent;
+            }
+
+            // 5. Process and display
+            transcriptData = parseVTT(vttContent); // Use existing parser
+
+            // Set generated filename
+            originalVttFilename = `${audioBaseFilename}_generated.vtt`;
+            vttFileNameSpan.textContent = originalVttFilename; // Display filename
+            updateDefaultFilename(); // Update save filename based on generated name
+
+            displayTranscription(transcriptData);
+            vttFileLoaded = true; // Mark VTT as loaded (generated)
+            checkFilesLoaded(); // Show the editor
+
+            generateStatus.textContent = translate('generateSuccess');
+            generateStatus.style.color = 'green';
+            generateStatus.dataset.translateKey = 'generateSuccess';
+            setTimeout(() => { generateStatus.textContent = ''; }, 5000); // Clear success message
 
         } catch (error) {
-            console.error("Save error:", error);
-            saveStatus.textContent = translate('saveError');
-            saveStatus.style.color = 'red';
-            saveStatus.dataset.translateKey = 'saveError';
+            console.error("Error during transcript generation:", error);
+            generateStatus.textContent = `${translate('generateError')} ${error.message}`; // Add error message detail
+            generateStatus.style.color = 'red';
+            generateStatus.dataset.translateKey = 'generateError'; // Keep base key for re-translation
+            vttFileLoaded = false; // Ensure VTT is not marked as loaded on error
+            checkFilesLoaded(); // Update UI state
+        } finally {
+            generateTranscriptBtn.disabled = false; // Re-enable button
         }
+        // --- END REAL API CALL ---
     });
 
-    // --- Auto-save Functions ---
-    function autoSaveTranscript() {
-        if (mainContentDiv.classList.contains('hidden') || transcriptData.length === 0) {
-            return; // Don't save if editor isn't visible or no data
-        }
-
-        // Save the currently edited segment text back to transcriptData before saving
-        if (currentEditingIndex !== -1 && currentEditingIndex < transcriptData.length) {
-             const currentTextInEditor = editableTranscriptTextarea.value;
-             if (currentTextInEditor !== transcriptData[currentEditingIndex].text) {
-                 transcriptData[currentEditingIndex].text = currentTextInEditor;
-                 // console.log(`Autosave updated cue ${currentEditingIndex} text.`);
-             }
-        }
-
-        // Serialize the relevant data (timestamps and text) for comparison and saving
-        const currentState = JSON.stringify(transcriptData.map(cue => ({
-            start: cue.start,
-            end: cue.end,
-            text: cue.text
-        })));
-
-        if (currentState === lastAutoSavedContent) {
-            return; // Don't save if content hasn't changed
-        }
-
-        try {
-            const timestamp = Date.now();
-            const keys = Object.keys(localStorage)
-                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX))
-                .sort();
-
-            while (keys.length >= MAX_AUTOSAVE_VERSIONS) {
-                const oldestKey = keys.shift();
-                localStorage.removeItem(oldestKey);
-                console.log("Removed oldest autosave:", oldestKey);
-            }
-
-            const newKey = AUTOSAVE_KEY_PREFIX + timestamp;
-            localStorage.setItem(newKey, currentState);
-            lastAutoSavedContent = currentState;
-            console.log("Autosaved:", newKey);
-
-            // Optionally provide subtle feedback
-            // saveStatus.textContent = `Autosaved at ${new Date().toLocaleTimeString()}`;
-            // saveStatus.style.color = 'grey';
-            // saveStatus.dataset.translateKey = ''; // Indicate it's not a standard message
-
-        } catch (error) {
-            console.error("Autosave failed:", error);
-            stopAutoSave();
-            saveStatus.textContent = translate('autosaveFailed');
-            saveStatus.style.color = 'red';
-            saveStatus.dataset.translateKey = 'autosaveFailed';
-        }
-    }
-
-    function startAutoSave() {
-        stopAutoSave(); // Clear any existing interval first
-        autoSaveIntervalId = setInterval(autoSaveTranscript, AUTO_SAVE_INTERVAL);
-        console.log("Autosave started.");
-    }
-
-    function stopAutoSave() {
-        if (autoSaveIntervalId) {
-            clearInterval(autoSaveIntervalId);
-            autoSaveIntervalId = null;
-            console.log("Autosave stopped.");
-        }
-    }
-
-    function clearAutoSaves() {
-        try {
-            const keys = Object.keys(localStorage)
-                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX));
-            keys.forEach(key => localStorage.removeItem(key));
-            console.log("Cleared all autosaves.");
-            lastAutoSavedContent = ''; // Reset tracker
-        } catch (error) {
-            console.error("Failed to clear autosaves:", error);
-        }
-    }
-
-
-    function loadLatestAutoSave(isLanguageChange = false) {
-        // Only attempt to load if no files are currently loaded and not just changing language
-        if (!isLanguageChange && (audioFileLoaded || vttFileLoaded)) {
-             console.log("Files already loaded or being loaded, skipping autosave restore check.");
-             startAutoSave(); // Ensure autosave starts if files are loaded
-             return;
-        }
-
-        try {
-            const keys = Object.keys(localStorage)
-                .filter(key => key.startsWith(AUTOSAVE_KEY_PREFIX))
-                .sort();
-
-            if (keys.length > 0) {
-                const latestKey = keys[keys.length - 1];
-                const savedStateJSON = localStorage.getItem(latestKey);
-                if (savedStateJSON) {
-                    const savedData = JSON.parse(savedStateJSON);
-
-                    if (Array.isArray(savedData) && savedData.length > 0) {
-                        const timestamp = parseInt(latestKey.replace(AUTOSAVE_KEY_PREFIX, ''));
-                        const timeString = new Date(timestamp).toLocaleTimeString(currentLang);
-
-                        // If just changing language, update existing message if present
-                        if (isLanguageChange && saveStatus.dataset.translateKey === 'autosaveLoaded') {
-                             saveStatus.textContent = translate('autosaveLoaded', { time: timeString }) + (currentMode === 'generate' ? " Select audio to generate or load files." : " Load files to continue editing.");
-                             return; // Don't proceed further
-                        }
-
-                        // Otherwise, if loading initially and no files are loaded
-                        if (!audioFileLoaded && !vttFileLoaded) {
-                            console.log("Found autosave data:", latestKey);
-                            // Show message indicating autosave exists
-                            saveStatus.textContent = translate('autosaveLoaded', { time: timeString }) + " Load files to continue editing.";
-                            saveStatus.style.color = 'blue';
-                            saveStatus.dataset.translateKey = 'autosaveLoaded'; // Mark this message
-
-                            // Store the loaded state to potentially apply *after* files are loaded.
-                            // This is complex. Simpler: just notify. User loads files, then normal flow.
-                            // We *could* try to apply it if the loaded VTT matches the structure, but risky.
-                            lastAutoSavedContent = savedStateJSON; // Keep track for comparison later
-                        } else {
-                             console.log("Files already loaded, skipping autosave restore to UI, but updating tracker.");
-                             lastAutoSavedContent = savedStateJSON;
-                        }
-                    } else {
-                         console.log("Autosave data is empty or invalid, skipping restore.");
-                         lastAutoSavedContent = ''; // Reset tracker
-                    }
-                }
-            } else {
-                 lastAutoSavedContent = ''; // No autosaves found
-            }
-        } catch (error) {
-            console.error("Failed to load or parse latest autosave:", error);
-            lastAutoSavedContent = ''; // Reset tracker on error
-        }
-        // Start autosave interval regardless
-        startAutoSave();
-    }
-
+    // ...existing code...
 
     // --- Cleanup ---
     window.addEventListener('beforeunload', () => {

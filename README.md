@@ -1,6 +1,6 @@
 # Transcription Checker Tool
 
-A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source. You can generate VTT files easily with Gemini in [AI Studio](https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221BD8IcXGVct71wT_kNHqU5rRnqj_LBkVF%22%5D,%22action%22:%22open%22,%22userId%22:%22110434416529506033412%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing).
+A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcription files against an audio source. This version uses the Google Gemini 1.5 Pro API to generate transcripts from audio files. **Note:** Using the generation feature requires a valid Google AI API key and may incur costs based on API usage.
 
 ![screenshot](<transcript screenshot.png>)
 
@@ -10,12 +10,12 @@ A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcr
 2.  **Select Language**: Use the buttons at the top to choose the UI language (English/Finnish). It should default to whatever the browser's set to.
 3.  **Choose Action**:
     *   **Load Existing VTT**: Click this to load an existing audio file and its corresponding VTT file.
-        *   Click the first "Choose File" button to select your audio file (e.g., MP3, WAV, OGG).
+        *   Click the first "Choose File" button to select your audio file (e.g., MP3, WAV, OGG, FLAC).
         *   Click the second "Choose File" button to select the corresponding VTT transcription file (`.vtt`).
-    *   **Generate VTT from Audio**: Click this to generate a new transcript from an audio file (uses a *simulated* API call in this version).
+    *   **Generate VTT from Audio**: Click this to generate a new transcript from an audio file using the Gemini API.
         *   Click the "Choose File" button to select your audio file.
-        *   (Optional) Enter an API key (not used in the simulation).
-        *   Click the "Generate Transcript" button. Wait for the simulated process to complete.
+        *   Enter your valid Google AI API key in the input field. You can obtain one from [Google AI Studio](https://aistudio.google.com/app/apikey).
+        *   Click the "Generate Transcript" button. Wait for the API call to complete. This may take some time depending on the audio length.
 4.  **Check & Edit** (Appears after files are loaded or generated):
     *   The name of the loaded/generated VTT file is displayed above the editor.
     *   Play the audio using the controls. Adjust playback speed if needed.
@@ -37,7 +37,7 @@ A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcr
 
 ## Features
 
-*   **Load or Generate**: Option to load existing VTT files or generate a new one from audio (currently simulated).
+*   **Load or Generate**: Option to load existing VTT files or generate a new one from audio using the Google Gemini 1.5 Pro API (requires API key).
 *   Synchronized playback: Highlights the current VTT cue in the original transcript and the corresponding timestamp pair in the editor as the audio plays.
 *   Click-to-seek: Click on a cue in the original transcript or a timestamp in the context view to jump to that time in the audio.
 *   Focused Editing: Edit the text of the current cue in a dedicated text area, with previous/next cues shown for context.

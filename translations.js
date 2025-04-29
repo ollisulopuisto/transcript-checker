@@ -50,14 +50,14 @@ const translations = {
         initialChoiceHeading: "Choose Action:",
         loadExistingBtn: "Load Existing VTT",
         generateNewBtn: "Generate VTT from Audio",
-        apiKeyLabel: "2. Enter API Key (Optional for Simulation):",
+        apiKeyLabel: "2. Enter API Key:", // Removed simulation note
         generateTranscriptBtn: "Generate Transcript",
         vttSourceLabel: "VTT Source:",
         generatingStatus: "Generating transcript, please wait...",
         generateSuccess: "Transcript generated successfully.",
         generateError: "Transcript generation failed. Check console for details.",
         noAudioForGeneration: "Please select an audio file first.",
-        noApiKey: "Please enter an API key (required for actual generation).",
+        noApiKey: "Please enter an API key.", // Updated message
     },
     fi: {
         pageTitle: "Litteroinnin tarkistustyökalu",
@@ -108,13 +108,13 @@ const translations = {
         initialChoiceHeading: "Valitse toiminto:",
         loadExistingBtn: "Lataa olemassaoleva VTT",
         generateNewBtn: "Generoi VTT äänitiedostosta",
-        apiKeyLabel: "2. Syötä API-avain (Valinnainen simulaatiossa):",
+        apiKeyLabel: "2. Syötä API-avain:", // Removed simulation note
         generateTranscriptBtn: "Generoi tekstitys",
         vttSourceLabel: "VTT-lähde:",
         generatingStatus: "Generoidaan tekstitystä, odota hetki...",
         generateSuccess: "Tekstityksen generointi onnistui.",
         generateError: "Tekstityksen generointi epäonnistui. Tarkista konsoli.",
         noAudioForGeneration: "Valitse ensin äänitiedosto.",
-        noApiKey: "Syötä API-avain (tarvitaan oikeassa generoinnissa).",
+        noApiKey: "Syötä API-avain.", // Updated message
     }
 };
