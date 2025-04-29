@@ -123,238 +123,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Initial Setup ---
-    currentLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'fi';
-    translateUI();
-    // Load API Key from local storage
-    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (savedApiKey) {
-        apiKeyInput.value = savedApiKey;
-    }
-    loadLatestAutoSave();
-    saveButton.disabled = true;
-    // Initial state: Show choice, hide inputs and main content
-    initialChoiceContainer.classList.remove('hidden');
+    // Hide main content and file info initially
+    mainContentDiv.classList.add('hidden');
+    vttFileInfoDiv.classList.add('hidden');
     fileInputContainer.classList.add('hidden');
     generateInputContainer.classList.add('hidden');
-    mainContentDiv.classList.add('hidden');
-    initialLoadMessageDiv.classList.add('hidden');
-    vttFileInfoDiv.classList.add('hidden');
+    toggleFileInputsBtn.style.display = 'none'; // Hide the reset button initially
+    initialLoadMessageDiv.classList.add('hidden'); // Ensure message is hidden initially
+
+    // Show initial choice
+    initialChoiceContainer.classList.remove('hidden');
 
 
-    // --- Initial Choice Handling ---
+    // --- Event Listeners for Initial Choice ---
     loadExistingBtn.addEventListener('click', () => {
-        currentMode = 'load';
         initialChoiceContainer.classList.add('hidden');
         fileInputContainer.classList.remove('hidden');
-        generateInputContainer.classList.add('hidden');
-        initialLoadMessageDiv.classList.remove('hidden'); // Show load prompt
-        // Ensure audio input in generate container doesn't interfere
-        audioFileGenerateInput.value = null;
-        checkFilesLoaded(); // Update UI based on current state (likely nothing loaded yet)
+        generateInputContainer.classList.add('hidden'); // Ensure generate section is hidden
+        // No need to show toggleFileInputsBtn here yet, only after files are loaded
     });
 
     generateNewBtn.addEventListener('click', () => {
-        currentMode = 'generate';
         initialChoiceContainer.classList.add('hidden');
-        fileInputContainer.classList.add('hidden');
+        fileInputContainer.classList.add('hidden'); // Ensure load section is hidden
         generateInputContainer.classList.remove('hidden');
-        initialLoadMessageDiv.classList.add('hidden'); // Hide load prompt
-        // Ensure audio/vtt inputs in load container don't interfere
-        audioFileInput.value = null;
-        vttFileInput.value = null;
-        checkFilesLoaded(); // Update UI based on current state
+        // No need to show toggleFileInputsBtn here yet
     });
 
 
-    // --- File Loading Visibility Toggle ---
-    function checkFilesLoaded() {
-        const editorReady = audioFileLoaded && vttFileLoaded;
-
-        if (editorReady) {
-            // Editor is ready, hide inputs, show editor and toggle button
-            fileInputContainer.classList.add('hidden');
-            generateInputContainer.classList.add('hidden');
-            toggleFileInputsBtn.style.display = 'block';
-            mainContentDiv.classList.remove('hidden');
-            initialLoadMessageDiv.classList.add('hidden');
-            saveButton.disabled = false;
-            switchToEditorBtn.style.display = 'none';
-            switchToEditorFromGenerateBtn.style.display = 'none';
-            vttFileInfoDiv.classList.remove('hidden'); // Show VTT source info
-        } else {
-            // Editor not ready, hide editor, show relevant inputs
-            mainContentDiv.classList.add('hidden');
-            saveButton.disabled = true;
-            toggleFileInputsBtn.style.display = 'none';
-            vttFileInfoDiv.classList.add('hidden'); // Hide VTT source info
-
-            // Show the correct input container based on mode
-            if (currentMode === 'load') {
-                fileInputContainer.classList.remove('hidden');
-                generateInputContainer.classList.add('hidden');
-                initialLoadMessageDiv.classList.remove('hidden'); // Show "load files" prompt
-                // Show "Return to Editor" only if files *were* previously loaded in 'load' mode
-                const wereFilesLoaded = transcriptData.length > 0 && audioPlayer.src;
-                switchToEditorBtn.style.display = wereFilesLoaded ? 'block' : 'none';
-                switchToEditorFromGenerateBtn.style.display = 'none';
-            } else if (currentMode === 'generate') {
-                fileInputContainer.classList.add('hidden');
-                generateInputContainer.classList.remove('hidden');
-                initialLoadMessageDiv.classList.add('hidden');
-                // Show "Return to Editor" only if generation *was* completed
-                const wasGenerated = transcriptData.length > 0 && audioPlayer.src;
-                switchToEditorFromGenerateBtn.style.display = wasGenerated ? 'block' : 'none';
-                switchToEditorBtn.style.display = 'none';
-            } else {
-                // No mode selected yet (initial state)
-                initialChoiceContainer.classList.remove('hidden');
-                fileInputContainer.classList.add('hidden');
-                generateInputContainer.classList.add('hidden');
-                initialLoadMessageDiv.classList.add('hidden');
-                switchToEditorBtn.style.display = 'none';
-                switchToEditorFromGenerateBtn.style.display = 'none';
-            }
-        }
-    }
-
-    toggleFileInputsBtn.addEventListener('click', () => {
-        // Reset everything and show the initial choice
-        currentMode = null;
-        audioFileLoaded = false;
-        vttFileLoaded = false;
-
-        // Hide editor and toggle button
-        mainContentDiv.classList.add('hidden');
-        toggleFileInputsBtn.style.display = 'none';
-        vttFileInfoDiv.classList.add('hidden');
-
-        // Show initial choice, hide input containers
-        initialChoiceContainer.classList.remove('hidden');
-        fileInputContainer.classList.add('hidden');
-        generateInputContainer.classList.add('hidden');
-        initialLoadMessageDiv.classList.add('hidden');
-        switchToEditorBtn.style.display = 'none';
-        switchToEditorFromGenerateBtn.style.display = 'none';
-
-        saveButton.disabled = true;
-
-        // Clear existing content
-        if (currentAudioObjectURL) {
-            URL.revokeObjectURL(currentAudioObjectURL);
-            currentAudioObjectURL = null;
-        }
-        audioPlayer.removeAttribute('src');
-        audioPlayer.load();
-
-        originalTranscriptDiv.innerHTML = '';
-        timestampEditorDiv.innerHTML = '';
-        previousSegmentsDiv.innerHTML = '';
-        nextSegmentsDiv.innerHTML = '';
-        editableTranscriptTextarea.value = '';
-        transcriptData = [];
-        currentEditingIndex = -1;
-        activeCueIndex = -1;
-        stopAutoSave();
-        saveStatus.textContent = '';
-        generateStatus.textContent = ''; // Clear generation status too
-        saveFilenameInput.value = 'modified_transcript.txt';
-        vttFileNameSpan.textContent = ''; // Clear VTT file name display
-
-        // Reset file input values
-        audioFileInput.value = null;
-        vttFileInput.value = null;
-        audioFileGenerateInput.value = null; // Reset generate audio input too
-        apiKeyInput.value = ''; // Clear API key input field
-        localStorage.removeItem(API_KEY_STORAGE_KEY); // Remove API key from storage
-
-        console.log("Reset to initial choice.");
-    });
-
-    // --- Listeners for the "Return to Editor" buttons ---
-    switchToEditorBtn.addEventListener('click', () => {
-        // Used in 'load' mode
-        fileInputContainer.classList.add('hidden');
-        switchToEditorBtn.style.display = 'none';
-        toggleFileInputsBtn.style.display = 'block';
-        mainContentDiv.classList.remove('hidden');
-        initialLoadMessageDiv.classList.add('hidden');
-        vttFileInfoDiv.classList.remove('hidden');
-        saveButton.disabled = false;
-        // Assume files are loaded if this button was visible
-        audioFileLoaded = true;
-        vttFileLoaded = true;
-    });
-
-    switchToEditorFromGenerateBtn.addEventListener('click', () => {
-        // Used in 'generate' mode
-        generateInputContainer.classList.add('hidden');
-        switchToEditorFromGenerateBtn.style.display = 'none';
-        toggleFileInputsBtn.style.display = 'block';
-        mainContentDiv.classList.remove('hidden');
-        initialLoadMessageDiv.classList.add('hidden');
-        vttFileInfoDiv.classList.remove('hidden');
-        saveButton.disabled = false;
-        // Assume files are loaded if this button was visible
-        audioFileLoaded = true;
-        vttFileLoaded = true;
-    });
-
-
-    // --- Language Selection ---
-    langBtnEn.addEventListener('click', () => {
-        currentLang = 'en';
-        translateUI();
-        // Re-format autosave message if present
-        loadLatestAutoSave(true); // Pass flag to indicate it's just a language change
-        // Re-translate status messages if visible
-        if (generateStatus.textContent) generateStatus.textContent = translate(generateStatus.dataset.translateKey || '');
-        if (saveStatus.textContent) saveStatus.textContent = translate(saveStatus.dataset.translateKey || '', { filename: saveFilenameInput.value });
-    });
-
-    langBtnFi.addEventListener('click', () => {
-        currentLang = 'fi';
-        translateUI();
-        // Re-format autosave message if present
-        loadLatestAutoSave(true); // Pass flag to indicate it's just a language change
-        // Re-translate status messages if visible
-        if (generateStatus.textContent) generateStatus.textContent = translate(generateStatus.dataset.translateKey || '');
-        if (saveStatus.textContent) saveStatus.textContent = translate(saveStatus.dataset.translateKey || '', { filename: saveFilenameInput.value });
-    });
-
-
-    // --- Audio File Handling (Common Function) ---
-    function handleAudioFileSelect(file) {
-        if (file) {
-            if (currentAudioObjectURL) {
-                URL.revokeObjectURL(currentAudioObjectURL);
-            }
-            currentAudioObjectURL = URL.createObjectURL(file);
-            audioPlayer.src = currentAudioObjectURL;
-            console.log("Audio file loaded:", file.name);
-
-            const lastDotIndex = file.name.lastIndexOf('.');
-            audioBaseFilename = lastDotIndex > 0 ? file.name.substring(0, lastDotIndex) : file.name;
-            updateDefaultFilename(); // Update save filename
-            audioFileLoaded = true;
-        } else {
-            audioFileLoaded = false;
-            if (currentAudioObjectURL) {
-                URL.revokeObjectURL(currentAudioObjectURL);
-                currentAudioObjectURL = null;
-                audioPlayer.removeAttribute('src');
-                audioPlayer.load();
-            }
-        }
-        checkFilesLoaded(); // Check if editor can be shown
-    }
-
-    // --- File Input Listeners ---
-    // Listener for the 'load' mode audio input
+    // --- Event Listeners for File Inputs ---
     audioFileInput.addEventListener('change', (event) => {
         handleAudioFileSelect(event.target.files[0]);
+        checkFilesLoaded(); // Check if both files are now loaded
     });
 
-    // Listener for the 'generate' mode audio input
     audioFileGenerateInput.addEventListener('change', (event) => {
         handleAudioFileSelect(event.target.files[0]);
         // In generate mode, loading audio doesn't immediately show the editor
@@ -1122,8 +924,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // --- END REAL API CALL ---
     });
-
-    // ...existing code...
 
     // --- Cleanup ---
     window.addEventListener('beforeunload', () => {
