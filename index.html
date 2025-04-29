@@ -88,22 +88,22 @@
                  <button id="generateNewBtn" data-translate-key="generateNewBtn">Generate VTT from Audio</button>
             </div>
 
-            <!-- Container for standard file inputs (VTT + Audio) - Initially Hidden -->
-            <div id="fileInputContainer" class="hidden">
+            <!-- Shared Audio File Input -->
+            <div id="sharedAudioInputContainer">
                 <label for="audioFile" data-translate-key="audioFileLabel">1. Valitse äänitiedosto:</label>
                 <input type="file" id="audioFile" accept="audio/*">
+            </div>
 
+            <!-- Container for VTT file input - Initially Hidden -->
+            <div id="fileInputContainer" class="hidden">
                 <label for="vttFile" data-translate-key="vttFileLabel">2. Valitse VTT-tekstitystiedosto:</label>
                 <input type="file" id="vttFile" accept=".vtt">
                 <!-- Add the new button here -->
                 <button id="switchToEditorBtn" style="display: none; margin-top: 10px;" data-translate-key="switchToEditorBtn">Palaa editoriin</button>
             </div>
 
-            <!-- Container for Generation Inputs (Audio + API Key + Button) - Initially Hidden -->
+            <!-- Container for Generation Inputs (API Key + Button) - Initially Hidden -->
             <div id="generateInputContainer" class="hidden">
-                 <label for="audioFileGenerate" data-translate-key="audioFileLabel">1. Select Audio File:</label>
-                 <input type="file" id="audioFileGenerate" accept="audio/*">
-
                  <label for="apiKey" data-translate-key="apiKeyLabel">2. Enter API Key (Optional for Simulation):</label>
                  <input type="password" id="apiKey" placeholder="Enter your API key here">
 

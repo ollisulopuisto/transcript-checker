@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Existing element references
-    const audioFileInput = document.getElementById('audioFile');
+    const audioFileInput = document.getElementById('audioFile'); // This is now the shared audio input
     const vttFileInput = document.getElementById('vttFile');
     const audioPlayer = document.getElementById('audioPlayer');
     const originalTranscriptDiv = document.getElementById('originalTranscript');
@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadExistingBtn = document.getElementById('loadExistingBtn');
     const generateNewBtn = document.getElementById('generateNewBtn');
     const generateInputContainer = document.getElementById('generateInputContainer');
-    const audioFileGenerateInput = document.getElementById('audioFileGenerate'); // Separate audio input for generation
+    // Remove reference to separate audio input for generation since we now use a shared one
+    // const audioFileGenerateInput = document.getElementById('audioFileGenerate');
+    const sharedAudioInputContainer = document.getElementById('sharedAudioInputContainer');
     const apiKeyInput = document.getElementById('apiKey');
     const generateTranscriptBtn = document.getElementById('generateTranscriptBtn');
     const generateStatus = document.getElementById('generateStatus');
@@ -608,6 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mainContentDiv.classList.remove('hidden');
             vttFileInfoDiv.classList.remove('hidden');
             toggleFileInputsBtn.style.display = 'inline-block'; // Show toggle button
+            sharedAudioInputContainer.classList.add('hidden'); // Hide shared audio input
 
             initialChoiceContainer.classList.add('hidden');
             fileInputContainer.classList.add('hidden');
@@ -626,6 +629,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initialChoiceContainer.classList.add('hidden');
         generateInputContainer.classList.add('hidden'); // Ensure generate is hidden
         fileInputContainer.classList.remove('hidden');
+        // Keep shared audio input visible
+        sharedAudioInputContainer.classList.remove('hidden');
         // Show "Return to Editor" button only if files are already loaded
         if (audioFileLoaded && vttFileLoaded) {
             switchToEditorBtn.style.display = 'inline-block';
@@ -639,6 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initialChoiceContainer.classList.add('hidden');
         fileInputContainer.classList.add('hidden'); // Ensure load section is hidden
         generateInputContainer.classList.remove('hidden');
+        // Keep shared audio input visible
+        sharedAudioInputContainer.classList.remove('hidden');
         // Show "Return to Editor" button only if files are already loaded
         if (audioFileLoaded && vttFileLoaded) {
             switchToEditorFromGenerateBtn.style.display = 'inline-block';
@@ -656,26 +663,16 @@ document.addEventListener('DOMContentLoaded', () => {
         initialChoiceContainer.classList.remove('hidden'); // Show initial choice again
         fileInputContainer.classList.add('hidden'); // Hide specific inputs initially
         generateInputContainer.classList.add('hidden'); // Hide specific inputs initially
+        sharedAudioInputContainer.classList.remove('hidden'); // Show shared audio input
         switchToEditorBtn.style.display = 'none'; // Hide return button
         switchToEditorFromGenerateBtn.style.display = 'none'; // Hide return button
     });
-
-    // Add event listeners for the "Return to Editor" buttons
-    switchToEditorBtn.addEventListener('click', returnToEditorView);
-    switchToEditorFromGenerateBtn.addEventListener('click', returnToEditorView);
-
 
     // --- Event Listeners for File Inputs ---
     audioFileInput.addEventListener('change', (event) => {
         handleAudioFileSelect(event.target.files[0]);
         checkFilesLoaded(); // Check if both files are now loaded
     });
-
-    audioFileGenerateInput.addEventListener('change', (event) => {
-        handleAudioFileSelect(event.target.files[0]);
-        // Don't call checkFilesLoaded here, wait for generation or explicit action
-    });
-
 
     vttFileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
@@ -733,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Transcript Generation ---
     generateTranscriptBtn.addEventListener('click', async () => { // Add async
-        const audioFile = audioFileGenerateInput.files[0];
+        const audioFile = audioFileInput.files[0]; // Use the shared audio input
         const apiKey = apiKeyInput.value.trim(); // Reads the API key
 
         if (!audioFile) {
@@ -874,6 +871,8 @@ document.addEventListener('DOMContentLoaded', () => {
     vttFileInfoDiv.classList.add('hidden');
     fileInputContainer.classList.add('hidden');
     generateInputContainer.classList.add('hidden');
+    // Show shared audio input container initially along with initial choice
+    sharedAudioInputContainer.classList.remove('hidden');
     toggleFileInputsBtn.style.display = 'none'; // Hide the reset button initially
     initialLoadMessageDiv.classList.add('hidden'); // Ensure message is hidden initially
 
