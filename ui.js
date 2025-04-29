@@ -438,6 +438,20 @@ function returnToEditorView() {
 }
 
 /**
+ * Initializes the UI on page load - Hide file inputs until a choice is made
+ */
+function initializeUIState() {
+    // Ensure the shared audio container and other input containers are hidden on initial load
+    sharedAudioInputContainer.classList.add('hidden');
+    fileInputContainer.classList.add('hidden');
+    generateInputContainer.classList.add('hidden');
+    
+    // Show the initial choice container and prompt message
+    initialChoiceContainer.classList.remove('hidden');
+    initialLoadMessageDiv.classList.remove('hidden');
+}
+
+/**
  * Sets up UI event listeners and initializes the module
  * @param {Object} elements - DOM elements needed by this module 
  * @param {Object} callbacks - Callback functions from other modules
@@ -467,6 +481,9 @@ export function initUI(elements, callbacks) {
     // Store references to other modules' functions
     handleAudioFileSelect = callbacks.handleAudioFileSelect;
     updateDefaultFilename = callbacks.updateDefaultFilename;
+    
+    // Initialize UI state
+    initializeUIState();
     
     // Set up event listeners
     // View Switching Buttons

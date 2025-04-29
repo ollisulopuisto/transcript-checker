@@ -666,11 +666,16 @@ small {
     display: none;
 }
 
-#generateInputContainer.hidden {
-    display: none;
-}
-
 #generateInputContainer {
     display: block;
     width: 100%;
+}
+
+#generateInputContainer.hidden {
+    display: none !important;
+}
+
+/* Ensure the shared audio container is properly hidden initially */
+#sharedAudioInputContainer.hidden {
+    display: none !important;
 }
