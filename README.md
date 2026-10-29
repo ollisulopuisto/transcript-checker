@@ -16,6 +16,7 @@ A simple web-based tool to check and correct VTT (Web Video Text Tracks) transcr
         *   Click the "Choose File" button to select your audio file.
         *   Enter your valid Google AI API key in the input field. You can obtain one from [Google AI Studio](https://aistudio.google.com/app/apikey).
         *   Click the "Generate Transcript" button. Wait for the API call to complete. This may take some time depending on the audio length.
+        *   **Note:** The API key is kept only in memory for the current session and is not saved in the browser, so you need to enter it again after a reload. This avoids storing sensitive credentials in clear text.
 4.  **Check & Edit** (Appears after files are loaded or generated):
     *   The name of the loaded/generated VTT file is displayed above the editor.
     *   Play the audio using the controls. Adjust playback speed if needed.

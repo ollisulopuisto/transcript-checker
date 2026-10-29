@@ -1,6 +1,6 @@
 // API handling functionality for transcript-checker
 import { readFileAsBase64 } from './utils.js';
-import { appState, API_KEY_STORAGE_KEY } from './state.js';
+import { appState } from './state.js';
 import { translate } from './i18n.js';
 import { parseVTT } from './vtt.js';
 import { startAutoSave, stopAutoSave, clearAutoSaves, updateDefaultFilename } from './save.js';
@@ -175,23 +175,16 @@ async function generateTranscriptFromAudio(audioFile, apiKey) {
 }
 
 /**
- * Saves and retrieves the API key to/from localStorage
+ * API key persistence is intentionally disabled.
+ *
+ * Storing sensitive credentials (such as a Google AI API key) in clear text in
+ * browser storage (localStorage / sessionStorage) exposes them to client-side
+ * attacks, e.g. XSS, and to any extension with storage access. The key is only
+ * kept in memory for the current session, so the user must enter it again on
+ * reload. This avoids clear-text storage of sensitive information.
  */
 function setupApiKeyPersistence() {
-    // Load saved API key
-    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (savedApiKey) {
-        apiKeyInput.value = savedApiKey;
-    }
-
-    // Save API key when changed
-    apiKeyInput.addEventListener('change', () => {
-        try {
-            localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput.value.trim());
-        } catch (e) {
-            console.warn("Could not save API key to local storage:", e);
-        }
-    });
+    // Intentionally no-op: do not store the API key in browser storage.
 }
 
 /**
