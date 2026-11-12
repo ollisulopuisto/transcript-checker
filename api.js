@@ -85,7 +85,7 @@ async function generateTranscriptFromAudio(audioFile, apiKey) {
         progressText.textContent = '50% - Sending to Google Gemini API';
 
         // 3. Make API call to Gemini 1.5 Pro
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
