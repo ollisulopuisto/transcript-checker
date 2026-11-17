@@ -17,14 +17,11 @@ let highlightTimestampPair;
  */
 function syncTranscriptWithAudio() {
     const currentTime = audioPlayer.currentTime;
-    let newActiveCueIndex = -1;
-    for (let i = 0; i < appState.transcriptData.length; i++) {
-        const cue = appState.transcriptData[i];
-        if (currentTime >= cue.start && currentTime < cue.end) {
-            newActiveCueIndex = i;
-            break;
-        }
-    }
+    const cues = appState.transcriptData;
+    // Saved/edited transcripts may be unsorted or overlapping. Preserve the
+    // first match in source order, independent of the previously active cue.
+    const newActiveCueIndex = cues.findIndex(cue =>
+        currentTime >= cue.start && currentTime < cue.end);
 
     if (newActiveCueIndex !== appState.activeCueIndex) {
         // Remove old highlight from original transcript
