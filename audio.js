@@ -17,12 +17,23 @@ let highlightTimestampPair;
  */
 function syncTranscriptWithAudio() {
     const currentTime = audioPlayer.currentTime;
+    const cues = appState.transcriptData;
+    // VTT cues are time-sorted, so bound the scan by the last active cue and
+    // stop at the first cue whose start time is beyond the playhead. Steady
+    // playback within a single cue becomes O(1) instead of O(cue count) per
+    // timeupdate (~4-66 Hz); a full scan only runs on a backward seek.
+    const last = appState.activeCueIndex;
+    const startIdx = last !== -1 && currentTime >= cues[last]?.start ? last : 0;
+
     let newActiveCueIndex = -1;
-    for (let i = 0; i < appState.transcriptData.length; i++) {
-        const cue = appState.transcriptData[i];
+    for (let i = startIdx; i < cues.length; i++) {
+        const cue = cues[i];
         if (currentTime >= cue.start && currentTime < cue.end) {
             newActiveCueIndex = i;
             break;
+        }
+        if (currentTime < cue.start) {
+            break; // time-sorted: no later cue can match
         }
     }
 
